@@ -77,7 +77,7 @@ class Buddy:
 
     def lively(self):
         """빠른 움직임(걷기·점프·들기·장난감)이 있어 60fps가 필요한지."""
-        calm = ("rest", "sleep", "work", "focus", "look")
+        calm = ("rest", "sleep", "work", "focus", "look", "sit")
         crits = [self.main, *self.minis.values()]
         return bool(self.grab or self.toy) or any(
             k.state not in calm or k.airborne() or k.squash_v > 0 or getattr(k, "done_at", None) for k in crits)
@@ -106,6 +106,12 @@ class Buddy:
         now = time.time()
         if c.state == "sleep":
             return ("z Z", GRAY)
+        if c.state == "dance":
+            return ("♪" if int(now * 2) % 2 else "♫", ORANGE)
+        if c.state == "sneeze" and now - c.state_start > 0.7:
+            return (t("에취!"), GRAY)
+        if c.state == "trip" and 0.4 < now - c.state_start < 1.4:
+            return (t("아야.."), GRAY)
         if c is self.main and self.focus_until:
             left = int(self.focus_until - now)
             return (f"{left // 60:02d}:{left % 60:02d}", GRAY)
@@ -323,7 +329,7 @@ class Buddy:
         idle = CGEventSourceSecondsSinceLastEventType(kCGEventSourceStateHIDSystemState, kCGAnyInputEventType)
         if idle > 300:
             self.active_since = now
-            if not self.was_idle and c.state in ("walk", "rest", "look") and not self.focus_until:
+            if not self.was_idle and c.state in ("walk", "rest", "look", "sit") and not self.focus_until:
                 self.was_idle = True
                 c.state, c.state_until = "sleep", now + 3600
         elif self.was_idle and idle < 2:
@@ -342,14 +348,14 @@ class Buddy:
 
     def brain(self, now, dt, m):
         c = self.main
-        if c.state in ("held", "air", "jump") or (c.state == "happy" and (now < c.state_until or c.airborne())):
+        if c.state in ("held", "air", "jump", "flip") or (c.state == "happy" and (now < c.state_until or c.airborne())):
             return
         if c.state == "happy":
             c.state = "rest"
         speed = self.cfg["speed"]
         toy = self.toy
         if self.bubble or self.menu_open or self.asking():  # 메뉴·질문창이 캐릭터를 따라가지 않게 멈춤
-            if c.state in ("walk", "fetch"):
+            if c.state in ("walk", "fetch", "zoom", "dance"):
                 c.state = "rest"
             return
         if toy and toy.carried:  # 공 물고 커서한테 돌아오기
@@ -400,21 +406,32 @@ class Buddy:
             return
         if c.state == "walk":
             c.walk(dt, speed)
+        elif c.state == "zoom":  # 우다다
+            c.walk(dt, speed * 3.2)
         if now > c.state_until:  # 다음 행동 고르기
             if c.state == "sleep":
                 c.emote("!")
-            weights = [5, 2, 2, 3 if self.night() else 1, 2 if self.cfg["windows"] else 0]
-            nxt = random.choices(["walk", "rest", "look", "sleep", "climb"], weights)[0]
+            night = self.night()
+            moves = {"walk": 5, "rest": 2, "look": 2, "sleep": 3 if night else 1, "climb": 2 if self.cfg["windows"] else 0,
+                     "sit": 1.5, "dance": 0.3 if night else 1, "stretch": 1, "yawn": 1.5 if night else 0.3,
+                     "zoom": 0.1 if night else 0.7, "flip": 0.1 if night else 0.5, "trip": 0.3, "sneeze": 0.3}
+            nxt = random.choices(list(moves), list(moves.values()))[0]
             if nxt == "climb":
                 plat = self.world.platform_above(c.cx, c.y)
                 if plat:
                     c.jump_to(random.uniform(plat[0] + 30, plat[1] - 30), plat[2])
                     return
                 nxt = "walk"
+            if nxt == "flip":
+                c.hop(620, "flip", 2.0)
+                play(self.cfg, "Pop")
+                return
             c.state = nxt
             c.state_until = now + {"walk": random.uniform(5, 14), "rest": random.uniform(2, 4),
-                                   "look": random.uniform(2, 3), "sleep": random.uniform(8, 15)}[nxt]
-            if nxt == "walk" and random.random() < 0.4:
+                                   "look": random.uniform(2, 3), "sleep": random.uniform(8, 15),
+                                   "sit": random.uniform(4, 9), "dance": random.uniform(3, 5), "stretch": 2.0, "yawn": 2.2,
+                                   "zoom": random.uniform(1.5, 3), "trip": 1.8, "sneeze": 1.4}[nxt]
+            if nxt in ("walk", "zoom") and random.random() < 0.4:
                 c.dir = -c.dir
 
     def mini_brain(self, aid, mc, now, dt):
@@ -438,8 +455,8 @@ class Buddy:
             self.bubble.orderOut_(None)
             self.bubble = None
 
-    def show(self, t, anchor=None, extra=None):
-        """t={"head", "text"} 말풍선. extra=[(버튼 글자, 함수)]는 닫기 앞에 붙는 버튼."""
+    def show(self, msg, anchor=None, extra=None):
+        """msg={"head", "text"} 말풍선. extra=[(버튼 글자, 함수)]는 닫기 앞에 붙는 버튼."""
         self.close_bubble()
         c = anchor or self.main
         play(self.cfg, "Pop")
@@ -447,8 +464,8 @@ class Buddy:
             c.hop(300, "happy", 0.6)
         c.emote("!")
         pad, inner = 16, BUBBLE_W - 32
-        head = label(t["head"], 12, ORANGE, bold=True, width=inner)
-        body = label(t["text"], 14, rgb("#222222"), width=inner)
+        head = label(msg["head"], 12, ORANGE, bold=True, width=inner)
+        body = label(msg["text"], 14, rgb("#222222"), width=inner)
         hh, th = head.fittingSize().height, body.fittingSize().height
         buttons = extra or []
         pills = [pill(txt, fn, ORANGE, NSColor.whiteColor()) for txt, fn in buttons]
@@ -572,7 +589,7 @@ class Buddy:
         c = self.main
         c.emote_until = c.face_until = 0
         if answer:
-            self.show({"head": f"{llm.PROVIDERS[self.provider()][0]} · {q[:40]}", "text": answer})
+            self.show({"head": f"{llm.PROVIDERS[self.provider()][0]} · {q[:40]}", "text": answer + "\n\n" + t("※ AI가 만든 답변이라 틀릴 수 있어요.")})
         else:
             c.feel("sad", 1.5)
             self.show({"head": t("질문") + f" · {q[:40]}", "text": t("답을 받지 못했어요. claude·codex·agy CLI에 로그인하거나 설정에서 API 키를 넣어 주세요.")})

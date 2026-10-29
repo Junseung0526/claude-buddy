@@ -60,8 +60,7 @@ TR = {
     "저장 실패": ("Save failed", "保存失敗", "保存失败", "Error al guardar"),
     "키 삭제": ("Key deleted", "キー削除", "密钥已删除", "Clave borrada"),
     "따라갈게!": ("Following you!", "ついていくね!", "跟着你!", "¡Te sigo!"),
-    "냠냠": ("Yum!", "もぐもぐ", "好吃!", "¡Ñam!"),
-    "쿨쿨": ("Zzz", "すやすや", "呼呼", "Zzz"),
+    "에취!": ("Achoo!", "くしゅん!", "阿嚏!", "¡Achís!"),
     # 말풍선·알림
     "지금: {label}": ("Now: {label}", "現在: {label}", "当前: {label}", "Ahora: {label}"),
     "Claude Code 확인 필요": ("Claude Code needs you", "Claude Code: 確認が必要", "Claude Code 需要确认", "Claude Code necesita tu atención"),
@@ -85,6 +84,7 @@ TR = {
         "25分の集中が終わりました。5分休んで水を飲んでから、また始めましょう。",
         "25 分钟专注完成。休息 5 分钟，喝杯水再开始吧。",
         "Terminaste 25 minutos de concentración. Descansa 5, bebe agua y vuelve a empezar."),
+    "※ AI가 만든 답변이라 틀릴 수 있어요.": ("※ AI-generated answer; it may be wrong.", "※ AIが生成した回答のため、誤りを含む場合があります。", "※ 此回答由 AI 生成，可能有误。", "※ Respuesta generada por IA; puede contener errores."),
     "닫기": ("Close", "閉じる", "关闭", "Cerrar"),
     "궁금한 걸 입력하고 Enter": ("Ask anything and press Enter", "知りたいことを入力して Enter", "输入问题后按 Enter", "Escribe tu pregunta y pulsa Enter"),
     "질문": ("Question", "質問", "问题", "Pregunta"),

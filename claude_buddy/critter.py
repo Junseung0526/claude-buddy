@@ -6,7 +6,8 @@ import time
 
 import objc
 from AppKit import (
-    NSAffineTransform, NSBezierPath, NSEvent, NSFont, NSFontAttributeName, NSForegroundColorAttributeName, NSMakeRect, NSMenu, NSString, NSView,
+    NSAffineTransform, NSBezierPath, NSEvent, NSFont, NSFontAttributeName, NSForegroundColorAttributeName, NSGraphicsContext, NSMakeRect,
+    NSMenu, NSString, NSView,
 )
 
 from .config import GRAVITY
@@ -49,11 +50,19 @@ def draw_critter(c, s):
     if s["shadow"]:
         rgb("#000000", 0.16).setFill()
         NSBezierPath.bezierPathWithOvalInRect_(NSMakeRect(W / 2 - 4.5 * P, 0, 9 * P, P * 0.9)).fill()
+    NSGraphicsContext.saveGraphicsState()  # 기울기·회전은 몸에만, 머리 위 글자는 똑바로
     tf = NSAffineTransform.transform()  # 발끝 중심으로 기울이기
     tf.translateXBy_yBy_(W / 2, base)
     tf.rotateByDegrees_(s["tilt"])
     tf.translateXBy_yBy_(-W / 2, -base)
     tf.concat()
+    if s.get("spin"):  # 공중제비: 몸 가운데를 축으로
+        cy = base + 4 * P + s["bob"]
+        sp = NSAffineTransform.transform()
+        sp.translateXBy_yBy_(W / 2, cy)
+        sp.rotateByDegrees_(s["spin"])
+        sp.translateXBy_yBy_(-W / 2, -cy)
+        sp.concat()
     by = base + 2 * P + s["bob"]
     bh = 4 * P * s["squash"]
     bw = 8 * P * (2 - s["squash"])
@@ -82,7 +91,7 @@ def draw_critter(c, s):
             fill(ex, ey - P * 0.2, P, P * 1.0, EYE)
             if n == 1:
                 fill(ex + P * 0.25, ey - P * 1.1, P * 0.5, P * 0.8, TEAR)
-        elif face in ("sleep", "blink"):
+        elif face in ("sleep", "blink", "yawn"):
             fill(ex, ey + P * 0.45, P, P * 0.25, EYE)
         elif face in ("work", "focus"):
             fill(ex, ey + P * 0.1, P, P * 0.6, EYE)
@@ -92,6 +101,8 @@ def draw_critter(c, s):
             fill(ex, ey, P, P * 1.25, EYE)
     if face == "surprised":
         fill(bx + bw / 2 - P * 0.35, by + bh * 0.2, P * 0.7, P * 0.7, EYE)
+    elif face == "yawn":  # 하품하는 입
+        fill(bx + bw / 2 - P * 0.5, by + bh * 0.12, P, P * 1.1, EYE)
     if s.get("prop"):
         draw_prop(c, s["prop"], bx, by, bw, bh)
     if getattr(c, "mark", None):  # 다른 에이전트 표식 (머리 위)
@@ -102,6 +113,7 @@ def draw_critter(c, s):
             for col, ch in enumerate(row):
                 if ch == "X":
                     fill(mx + col * mp, my + (len(px) - 1 - r) * mp, mp, mp, color)
+    NSGraphicsContext.restoreGraphicsState()
     if s["emote"] and s["emote"][0] == HEART:
         hp = max(1.5, P * 0.45)
         hx, hy = min(bx + bw + P * 0.5 - 3.5 * hp, W - 7 * hp), by + bh + P * 0.6 + s["emoteRise"]
@@ -233,6 +245,15 @@ class Critter:
         self.win.orderFrontRegardless()
 
     @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, st):
+        if st != getattr(self, "_state", None):
+            self._state, self.state_start = st, time.time()
+
+    @property
     def cx(self):
         return self.x + self.W / 2
 
@@ -282,7 +303,7 @@ class Critter:
         if not (self.y > g + 0.5 or self.vy > 0):
             self.y = g
             return 0.0
-        if self.state not in ("air", "jump", "happy"):
+        if self.state not in ("air", "jump", "happy", "flip"):
             self.state = "air"  # 발판 끝에서 걸어 나가 떨어짐
         self.vy -= GRAVITY * dt
         self.x += self.vx * dt
@@ -303,7 +324,7 @@ class Critter:
             self.vy, self.vx = impact * 0.4, self.vx * 0.7
             return impact
         self.vy = self.vx = 0.0
-        if self.state in ("air", "jump"):
+        if self.state in ("air", "jump", "flip"):
             self.state, self.state_until = "rest", time.time() + 1.0
         return impact
 
@@ -346,7 +367,9 @@ class Critter:
     def pose(self):
         now = time.time()
         st = self.state
-        w = st in ("walk", "fetch")
+        w = st in ("walk", "fetch", "zoom")
+        age = now - self.state_start  # 지금 동작을 시작한 지 몇 초
+        ease = 0.5 - 0.5 * math.cos(min(1.0, age / 0.6) * math.pi)  # 0→1 부드럽게
         ph = self.walk_phase
         step = math.sin(ph)
         dangle = st in ("held", "air")
@@ -371,8 +394,16 @@ class Critter:
             tilt = -self.dir * 10
         elif st == "happy":
             tilt = math.sin(now * 18) * 6
+        elif st == "zoom":
+            tilt = -self.dir * 12 + math.sin(ph * 2) * 2
         elif w:
             tilt = -self.dir * 5 + math.sin(ph * 2) * 1.5
+        elif st == "dance":
+            tilt = math.sin(now * 6) * 10
+        elif st == "trip":  # 앞으로 꽈당, 잠깐 엎어졌다가 일어남
+            tilt = -self.dir * 75 * (ease if age < 1.2 else max(0.0, 1 - (age - 1.2) / 0.4))
+        elif st == "sneeze":  # 들이마시며 뒤로, 에취! 하며 앞으로
+            tilt = self.dir * 6 * ease if age < 0.7 else -self.dir * 12 * max(0.0, 1 - (age - 0.7) / 0.5)
         else:
             tilt = 0.0
         a = 0.18
@@ -392,6 +423,16 @@ class Critter:
             face = "sleep"
         elif st in ("work", "focus"):
             face = "work"
+        elif st in ("dance", "flip", "zoom"):
+            face = "happy"
+        elif st == "trip":
+            face = "surprised" if age < 0.4 else "sad"
+        elif st in ("stretch", "yawn"):
+            face = "yawn" if st == "yawn" or 0.4 < age < 1.6 else "blink"
+        elif st == "sneeze":
+            face = "sleepy" if age < 0.7 else "surprised"
+        elif st == "sit" and math.sin(now * 0.7) > 0.93:
+            face = "blink"
         elif self.blink_at <= now < self.blink_at + 0.12:
             face = "blink"
         elif self.owner.night() and st in ("rest", "look"):
@@ -401,13 +442,24 @@ class Critter:
         wave = self.hover or st == "look"
         if typing:  # 타닥타닥
             armL, armR = abs(math.sin(now * 14)) * P * 0.6, abs(math.cos(now * 14)) * P * 0.6
+        elif st == "dance":  # 양팔 번갈아 번쩍
+            armL, armR = (P * 1.6, 0.0) if math.sin(now * 3) > 0 else (0.0, P * 1.6)
+        elif st in ("stretch", "yawn"):  # 기지개
+            up = P * (2.0 if st == "stretch" else 0.9) * (ease if age < 1.6 else max(0.0, 1 - (age - 1.6) / 0.4))
+            armL = armR = up
+        elif st == "sit":
+            armL = armR = -P * 0.4
+        elif st == "trip":
+            armL = armR = P * 1.4 * ease
         elif dangle or st in ("happy", "jump"):
             armL = armR = P * 1.2
         else:
             armL = -step * P * 0.3 if w else 0.0
             armR = abs(math.sin(now * 9)) * P * 1.5 if wave else (step * P * 0.3 if w else 0.0)
         emote = self.emote_text if now < self.emote_until else self.owner.idle_emote(self)
-        return {
+        dance = math.sin(now * 6)
+        stretch_up = 0.15 * (ease if age < 1.6 else max(0.0, 1 - (age - 1.6) / 0.4)) if st == "stretch" else 0.0
+        pose = {
             "legA": max(0.0, step) ** 1.5 * P * 0.9 if w else (P * 0.6 * (0.5 + 0.5 * math.sin(now * 12)) if dangle else 0.0),
             "legB": max(0.0, -step) ** 1.5 * P * 0.9 if w else (P * 0.6 * (0.5 - 0.5 * math.sin(now * 12)) if dangle else 0.0),
             "bob": abs(step) * P * 0.3 if w else (P * 0.8 if dangle else (abs(math.sin(now * 14)) * P * 0.15 if typing else 0.0)),
@@ -419,3 +471,12 @@ class Critter:
             "emoteRise": ((now - self.emote_start) * 6 if now < self.emote_until else math.sin(now * 2) * 2) if emote else 0.0,
             "prop": (self.work_kind, int(now * 8)) if st == "work" and self.work_kind else None,
         }
+        if st == "dance":  # 들썩들썩, 다리 번갈아
+            pose.update(bob=abs(dance) * P * 0.6, legA=max(0.0, dance) * P * 0.6, legB=max(0.0, -dance) * P * 0.6)
+        elif st == "sit":  # 몸을 낮춰 다리가 짧아 보이게
+            pose.update(bob=-P * 1.1 * ease, squash=pose["squash"] * 0.97)
+        elif st == "stretch":
+            pose.update(squash=1.0 + stretch_up)
+        elif st == "flip":  # 뛰어올라 한 바퀴
+            pose.update(spin=-self.dir * 360 * min(1.0, age / 0.75))
+        return pose
