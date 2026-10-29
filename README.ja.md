@@ -18,7 +18,7 @@
   <a href="https://github.com/Junseung0526/claude-buddy/releases/latest/download/Claude-Buddy-macOS-arm64.zip"><b>⬇ macOS 版をダウンロード</b></a>
 </p>
 
-<p align="center"><a href="README.md">한국어</a> · <a href="README.en.md">English</a> · <b>日本語</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.ko.md">한국어</a> · <b>日本語</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a></p>
 
 <p align="center"><img src="docs/ja/demo.gif" width="640" alt="Claude Buddy demo"></p>
 
@@ -358,7 +358,7 @@ claude-buddy/
 ├── LICENSE               # MIT
 ├── CHANGELOG.md          # 変更履歴
 ├── THIRD_PARTY_NOTICES.md # アプリに同梱するオープンソースのライセンス表示
-├── README.md             # 韓国語(README.en.md · README.ja.md · README.zh-CN.md · README.es.md)
+├── README.md             # 英語 (README.ko.md · README.ja.md · README.zh-CN.md · README.es.md)
 └── .gitignore
 ```
 

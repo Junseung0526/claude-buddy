@@ -1,0 +1,427 @@
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Claude Buddy">
+</p>
+
+<h1 align="center">Claude Buddy</h1>
+
+<p align="center">화면 위를 돌아다니며 <b>Claude Code·Codex·Antigravity가 지금 하고 있는 작업</b>을 실시간으로 보여주는 macOS 데스크톱 펫</p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/Junseung0526/claude-buddy?color=D97757"></a>
+  <a href="https://github.com/Junseung0526/claude-buddy/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Junseung0526/claude-buddy/total?color=D97757"></a>
+  <img alt="macOS Apple Silicon" src="https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple">
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest/download/Claude-Buddy-macOS-arm64.zip"><b>⬇ macOS용 다운로드</b></a>
+</p>
+
+<p align="center"><a href="README.md">English</a> · <b>한국어</b> · <a href="README.ja.md">日本語</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a></p>
+
+<p align="center"><img src="docs/demo.gif" width="640" alt="Claude Buddy demo"></p>
+
+![Claude Code, Antigravity, Codex 캐릭터](docs/characters.png)
+
+Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다른 앱 창 위를 걸어 다닙니다. Claude Code가 일을 시작하면 머리 위에 현재 작업을 띄워 주고, 서브에이전트가 실행되면 작은 캐릭터들이 튀어나와 옆에서 함께 일하는 모습을 보여줍니다. 쓰다듬기, 던지기, 공놀이, 간식 주기, 집중 타이머처럼 함께 놀 수 있는 기능도 있고, 궁금한 걸 물으면 로그인된 Claude·Codex·Antigravity CLI로 짧게 답해 줍니다. 화면은 한국어, English, 日本語, 简体中文, Español을 지원합니다.
+
+---
+
+## 목차
+
+1. [주요 기능](#주요-기능)
+2. [요구 사항](#요구-사항)
+3. [설치 및 실행](#설치-및-실행)
+4. [직접 빌드하기](#직접-빌드하기)
+5. [사용법](#사용법)
+6. [설정](#설정)
+7. [AI에게 질문하기 (선택)](#ai에게-질문하기-선택)
+8. [작동 원리](#작동-원리)
+9. [프로젝트 구조](#프로젝트-구조)
+10. [개인정보와 데이터](#개인정보와-데이터)
+11. [문제 해결](#문제-해결)
+12. [알려진 제한 사항](#알려진-제한-사항)
+13. [출처](#출처)
+
+---
+
+## 주요 기능
+
+### 1. AI 에이전트 작업 실시간 표시
+- 캐릭터 머리 위의 작은 라벨에 Claude Code가 지금 하는 일을 보여줍니다.
+
+  | 라벨 예시 | 의미 | 캐릭터 동작 |
+  |---|---|---|
+  | `새 요청 받음`, `생각 중` | 새 메시지, 추론·도구 결과 처리 | 생각 구름 점 |
+  | `읽는 중 · buddy.py (120줄부터)` | 파일 읽기 | 책 읽기, 책장 넘김 |
+  | `수정 중 · buddy.py`, `작성 중 · new.py` | 파일 수정, 새 파일 작성 | 연필로 긋기 |
+  | `실행 중 · (명령 설명)` | 터미널 명령 실행 | 작은 터미널에 커서 깜빡임 |
+  | `코드 검색 · 'pattern'`, `파일 찾는 중 · *.py` | 코드·파일 검색 | 돋보기가 빙글빙글 |
+  | `웹 검색 · (검색어)`, `웹 읽는 중 · github.com` | 웹 검색·페이지 읽기 | 도는 지구본 |
+  | `계획 정리 중` | 할 일 목록 정리 | 체크리스트에 하나씩 체크 |
+  | `답변 작성 중` | 답변 쓰는 중 | 말풍선에 글이 써짐 |
+  | `서브에이전트 · (작업 이름)` | 서브에이전트 호출 | 생각 구름 점 |
+  | `확인 필요 · 질문에 답해 주세요`, `확인 필요 · 권한 확인` | 내 대답이나 권한 허락을 기다리는 중 | 손을 흔들며 부름, 알림 |
+  | `작업 완료` | 작업이 끝남 (8초간 표시) | 깡충 뛰기 |
+
+  ![작업 종류별 소품 애니메이션](docs/animations.png)
+
+  라벨 왼쪽의 점은 작업 중이면 주황색, 완료되면 초록색입니다.
+
+- 작업하는 동안 캐릭터는 제자리에서 타자를 치며, 위 표처럼 **작업 종류에 맞는 소품 애니메이션**을 보여줍니다. 한 단계가 10초 넘게 걸리면 라벨에 경과 시간(`· 20초`, `· 2분`)이 붙습니다. Codex·Antigravity 캐릭터도 같은 동작을 합니다.
+- **배터리 절약**: 걷거나 뛸 때만 60fps로 그리고, 가만히 있을 때는 20fps, 숨어 있을 때는 2fps로 줄입니다. 화면에서 달라진 게 없으면 다시 그리지 않습니다.
+- **확인 필요 알림**: Claude Code가 질문(AskUserQuestion, 계획 승인)에 대한 내 대답을 기다리면 캐릭터가 손을 흔들며 "확인 필요!"를 띄우고, 효과음과 macOS 알림을 보냅니다. 권한 허락 대기는 세션 기록에 직접 남지 않아서, 편집·쓰기·웹 읽기 도구가 8초 넘게 결과가 없으면 권한을 기다리는 것으로 봅니다. 명령 실행(Bash)은 원래 오래 걸릴 수 있어 제외합니다.
+- **긴 작업 완료 알림**: 1분 넘게 걸린 작업이 끝나면 macOS 알림으로 알려줍니다. 다른 앱을 보고 있어도 알 수 있습니다.
+- **사용량 보기**: 메뉴의 **사용량 보기…** 를 누르면 창이 열립니다. 오늘 출력·입력 토큰, 세션 수, 응답 수와 최근 7일 출력 토큰 막대그래프(막대에 커서를 올리면 정확한 값), 오늘 프로젝트별 출력을 보여줍니다. 세션 기록의 usage만 모아 세며 바깥으로 보내지 않습니다.
+
+  ![사용량 창 (예시 데이터)](docs/usage.png)
+- **서브에이전트가 실행되면 작은 캐릭터가 하나씩 등장**합니다. 최대 6명까지 나오며, 각자 머리 위에 자기 작업을 표시하고 메인 캐릭터 옆에서 함께 일합니다. 서브에이전트가 끝나면 "완료!"를 외치고 점프한 뒤 화면 밖으로 퇴장합니다.
+- 작은 캐릭터를 클릭하면 그 서브에이전트가 맡은 작업과 현재 상태를 말풍선으로 보여줍니다.
+- **다른 AI 에이전트도 함께 보여줍니다.** 해당 에이전트가 일하는 동안 전용 캐릭터가 나와 옆에서 작업을 표시하고, 끝나면 퇴장합니다. API 키 없이 내 Mac에 남는 작업 기록만 읽습니다.
+
+  | 에이전트 | 캐릭터 | 읽는 기록 | 표시하는 작업 |
+  |---|---|---|---|
+  | Claude Code | 주황 (메인) | `~/.claude/projects/` 세션 JSONL | 파일 읽기·수정, 명령, 검색, 서브에이전트 등 |
+  | Codex (GPT) | 초록 몸 + 흰 고리 | `~/.codex/sessions/` 세션 JSONL | 새 요청, 생각 중, 명령 실행, 파일 수정, 답변 작성 |
+  | Antigravity (Gemini) | 파란 몸 + 보라 반짝이 | `~/.gemini/antigravity-cli/log/`, `~/.gemini/antigravity/log/` | 새 요청, 도구 실행 단계, 완료 |
+
+### 2. 캐릭터 동작
+- **60fps 애니메이션**을 사용합니다. 걸을 때 앞으로 기울고, 다리가 번갈아 들리고, 착지할 때 찌그러졌다 펴집니다(squash & stretch). 시선과 기울기는 부드럽게 따라갑니다.
+- **표정**이 상황에 따라 바뀝니다. 평소, 깜빡임, 기쁨(^ ^와 볼터치), 놀람, 아픔(눈물), 졸림, 집중, 잠.
+- **혼자 하는 행동**: 가만히 두면 걷기, 쉬기, 두리번거리기, 졸기, 다른 창 위로 점프하기에 더해 아래 동작을 섞어서 합니다. 밤에는 하품과 잠이 늘고, 우다다와 공중제비는 줄어듭니다.
+
+  | 동작 | 모습 |
+  |---|---|
+  | 춤 | 양팔을 번갈아 들고 들썩이며 음표를 띄움 |
+  | 기지개 | 눈을 감고 팔을 쭉 뻗으며 몸을 늘림 |
+  | 앉기 | 몸을 낮춰 앉아서 가끔 눈을 깜빡임 |
+  | 우다다 | 평소보다 3배 빠르게 달림 |
+  | 공중제비 | 뛰어올라 한 바퀴 돌고 착지 |
+  | 꽈당 | 앞으로 넘어졌다가 "아야.." 하고 일어남 |
+  | 하품 | 입을 크게 벌리고 팔을 살짝 듦 |
+  | 에취 | 숨을 들이마셨다가 "에취!" 하며 앞으로 숙임 |
+
+  ![새 동작](docs/moves.png)
+- **창 위로 올라가 걷기**: 열려 있는 다른 앱 창의 윗변을 발판으로 씁니다. 발판 끝에서 떨어지기도 합니다. 다른 창에 가려진 부분은 발판으로 쓰지 않습니다.
+- **여러 모니터**: 연결된 모든 화면을 오가며 돌아다닙니다.
+- **항상 위에 표시**: 어떤 앱이 앞에 있든, 어떤 데스크톱(Space)에 있든 보입니다. 배경은 완전히 투명합니다.
+
+### 3. 상호작용
+
+| 조작 | 반응 |
+|---|---|
+| 클릭 | 쓰다듬기 (하트) |
+| 더블클릭 | 쓰다듬기 (하트, 깡충) |
+| 커서를 2.5초 올려두기 | 쓰다듬기 |
+| 커서를 가까이 대기 | 멈춰서 커서를 쳐다보고 손 흔들기 |
+| 드래그 | 들어 올리기 (다리 대롱대롱, 놀란 표정) |
+| 드래그하다 놓기 | 던지기. 벽과 바닥에 튕기고, 세게 떨어지면 "아야.." |
+| 우클릭 | 메뉴 열기 (메뉴가 열린 동안 캐릭터는 멈춤) |
+
+**메뉴 기능** (우클릭 또는 메뉴바 아이콘)
+
+| 메뉴 | 설명 |
+|---|---|
+| 사용량 보기… | 오늘·최근 7일 Claude Code 토큰 사용량 창 |
+| 질문하기… | 궁금한 내용을 입력하면 Claude·Gemini·GPT가 짧게 답변 ([AI에게 질문하기](#ai에게-질문하기-선택) 참고) |
+| 간식 주기 | 커서 위치에 쿠키가 떨어지고, 캐릭터가 달려가서 먹음. 쿠키는 드래그로 옮길 수 있음 |
+| 공놀이 | 공을 던지면 쫓아가서 물고 커서 쪽으로 가져옴. 다시 던질 때까지 기다림 |
+| 커서 따라오기 | 커서를 따라다님. 커서가 다른 창 위에 있으면 그 창 위로 점프 |
+| 집중 타이머 (25분) | 캐릭터가 머리 위에 남은 시간을 띄우고 같이 집중. 끝나면 휴식 안내 |
+| 30분 동안 쉬기 | 30분 동안 잠자기 |
+| 설정 | 아래 [설정](#설정) 참고 |
+
+### 4. 생활 반응
+- **자리 비움**: 5분 동안 입력이 없으면 잠들고, 돌아오면 놀라며 "어서와요!"라고 반깁니다.
+- **휴식 알림**: 50분 동안 쉬지 않고 사용하면 스트레칭하라고 알려줍니다.
+- **늦은 밤**: 자정부터 새벽 5시 사이에는 졸린 표정이 되고, 하루 한 번 그만 쉬자고 권합니다.
+
+### 5. 사용 편의
+- **메뉴바 아이콘**: 우클릭 메뉴와 같은 기능에 더해, 현재 Claude Code 작업 목록과 **캐릭터 숨기기/보이기**를 제공합니다.
+- **전체화면 자동 숨김**: 앞에 있는 앱이 전체화면(영상, 발표 등)이면 자동으로 숨고, 전체화면이 끝나면 다시 나타납니다.
+- **효과음**: 클릭, 먹기, 잡기, 완료 같은 순간에 짧은 시스템 효과음을 냅니다. 설정에서 끌 수 있습니다.
+- **Dock 아이콘 없음**: 메뉴바 아이콘만 나타납니다.
+
+---
+
+## 요구 사항
+
+- **macOS**, **Apple Silicon(M1 이상)**. 배포 앱은 arm64 전용입니다. Intel Mac에서는 [직접 빌드](#직접-빌드하기)하세요.
+- 배포 앱에는 Python과 의존성이 모두 들어 있어 따로 설치할 것이 없습니다.
+- 직접 빌드할 때만 **Python 3.10 이상**이 필요하며, 의존성은 `build.sh`가 설치합니다.
+  - `pyobjc-framework-Cocoa`: 투명하고 항상 위에 있는 창, 그리기, 메뉴바
+  - `pyobjc-framework-Quartz`: 다른 앱 창 위치, 입력 유휴 시간
+  - `anthropic`: (선택) Claude 답변
+  - `certifi`: 배포 앱에서 HTTPS 인증서 확인
+
+---
+
+## 설치 및 실행
+
+### 1. 내려받기
+
+[Releases](https://github.com/Junseung0526/claude-buddy/releases/latest)에서 `Claude-Buddy-macOS-arm64.zip`을 받아 압축을 풉니다.
+
+### 2. 응용 프로그램 폴더로 옮기기
+
+`Claude Buddy.app`을 `응용 프로그램`(Applications) 폴더로 드래그합니다.
+
+### 3. 처음 한 번 실행 허용
+
+이 앱은 Apple 개발자 인증서로 서명·공증되지 않았기 때문에, 처음 열면 macOS가 실행을 막습니다. 다음 중 한 가지 방법으로 허용하세요.
+
+- **방법 1 (시스템 설정)**: 앱을 한 번 연 뒤 경고가 뜨면 닫고, **시스템 설정 → 개인정보 보호 및 보안**의 아래쪽에서 **그래도 열기**를 누릅니다.
+- **방법 2 (터미널)**: 다운로드 격리 표시를 지웁니다.
+
+  ```bash
+  xattr -dr com.apple.quarantine "/Applications/Claude Buddy.app"
+  ```
+
+### 4. 실행·종료
+
+- `Claude Buddy.app`을 더블클릭하면 캐릭터가 나타나고 메뉴바에 아이콘이 생깁니다. Dock에는 나타나지 않습니다.
+- 종료하려면 캐릭터를 우클릭하거나 메뉴바 아이콘에서 **종료**를 누릅니다.
+- 로그인할 때 자동으로 켜지게 하려면 **시스템 설정 → 일반 → 로그인 항목**에 직접 추가하세요(기본으로는 추가하지 않습니다).
+
+---
+
+## 직접 빌드하기
+
+소스에서 실행하거나 앱을 직접 만들 수 있습니다.
+
+```bash
+git clone https://github.com/Junseung0526/claude-buddy.git
+cd claude-buddy
+./build.sh
+```
+
+`build.sh`가 하는 일:
+1. `.venv` 가상환경 생성 (`python3.14`를 우선 사용하고, 없으면 `python3`)
+2. `requirements.txt` 의존성과 PyInstaller 설치
+3. 캐릭터를 그려 앱 아이콘(`.icns`) 생성
+4. PyInstaller로 Python이 내장된 **`dist/Claude Buddy.app`** 빌드 (메뉴바 전용 앱으로 설정, ad-hoc 서명)
+5. 배포용 **`dist/Claude-Buddy-macOS-<아키텍처>.zip`** 생성
+
+버전은 `VERSION=1.1.0 ./build.sh`처럼 지정합니다. 빌드 없이 바로 실행하려면 다음과 같이 합니다.
+
+```bash
+.venv/bin/python buddy.py          # 또는 .venv/bin/python -m claude_buddy
+```
+
+버전 태그(`v1.6.0` 등)를 푸시하면 GitHub Actions가 앱을 빌드하고, `CHANGELOG.md`의 해당 버전 내용으로 릴리스를 올립니다.
+
+---
+
+## 사용법
+
+1. 실행하면 캐릭터가 화면 아래에 나타나 걷기 시작합니다.
+2. Claude Code·Codex·Antigravity로 작업을 시작하면, 캐릭터가 하던 일을 멈추고 작업 상황을 표시합니다.
+3. 궁금한 게 생기면 **우클릭 → 질문하기**에 입력하고 `Enter`를 누릅니다. `Esc`를 누르면 닫힙니다. 답은 말풍선으로 뜨고 25초 뒤 자동으로 닫힙니다. AI가 만든 답이라 틀릴 수 있다는 안내가 함께 붙습니다.
+
+---
+
+## 설정
+
+메뉴의 **설정**에서 바꿀 수 있고, 바꾼 값은 `~/Library/Application Support/Claude Buddy/settings.json`에 저장되어 다음 실행 때도 유지됩니다.
+
+| 항목 | 키 | 선택지 | 기본값 |
+|---|---|---|---|
+| 크기 | `scale` | 작게 / 보통 / 크게 | 보통 (`6`) |
+| 걷는 속도 | `speed` | 느리게 / 보통 / 빠르게 | 보통 (`55`) |
+| 소리 | `sound` | 켜기 / 끄기 | 켜기 |
+| 알림 (확인 필요·긴 작업 완료) | `notify` | 켜기 / 끄기 | 켜기 |
+| 언어 | `lang` | 시스템 설정 따르기(`auto`) / 한국어(`ko`) / English(`en`) / 日本語(`ja`) / 简体中文(`zh`) / Español(`es`) | 시스템 언어 (언어 설정이 생기기 전부터 쓰던 사람은 한국어) |
+| 창 위로 올라가기 | `windows` | 켜기 / 끄기 | 켜기 |
+| 에이전트 작업 보기 | `activity` | 켜기 / 끄기 | 켜기 |
+| 질문 답변 모델 | `ask_provider` | Claude / Gemini / GPT | Claude (`claude`) |
+
+`settings.json`을 직접 고쳐도 됩니다(앱 재시작 후 적용).
+
+```json
+{
+ "scale": 6,
+ "speed": 55,
+ "sound": true,
+ "windows": true,
+ "activity": true,
+ "notify": true,
+ "lang": "ko",
+ "ask_provider": "claude"
+}
+```
+
+---
+
+## AI에게 질문하기 (선택)
+
+**질문하기**는 다음 순서로 답할 방법을 찾습니다.
+
+| 상황 | 동작 |
+|---|---|
+| 고른 모델의 **CLI에 로그인돼 있을 때** (기본) | CLI가 고른 언어로 3문장 이내로 답변. API 키 필요 없음 |
+| CLI가 없고 **API 키가 있을 때** | 같은 방식으로 API를 직접 불러 답변 |
+| 둘 다 없을 때 | 로그인이나 키가 필요하다고 알려줌 |
+
+CLI로 답할 때는 구독 사용량을 쓰며, CLI를 띄우느라 답이 5~10초 걸립니다. 도구를 쓰지 않고 세션 기록도 남기지 않으므로 작업 표시에 잡히지 않습니다.
+
+| 선택 | 쓰는 CLI | 로그인 |
+|---|---|---|
+| Claude | `claude -p` (Haiku) | Claude Code 로그인 |
+| Gemini | `agy -p` | Antigravity 로그인 |
+| GPT | `codex exec` | Codex 로그인 |
+
+CLI는 `PATH`, `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`에서 찾습니다.
+
+### 답변 모델 고르기
+
+메뉴의 **설정 → 질문 답변 모델**에서 고릅니다. 아래 모델은 CLI가 없을 때 API 키로 부르는 모델이며, 모두 짧은 답에 맞춘 저렴한 모델입니다.
+
+| 선택 | 모델 | 키 받는 곳 |
+|---|---|---|
+| Claude | `claude-haiku-5-5` | [Anthropic Console](https://console.anthropic.com/) |
+| Gemini | `gemini-flash-lite-latest` | [Google AI Studio](https://aistudio.google.com/apikey) |
+| GPT | `gpt-5-mini` | [OpenAI Platform](https://platform.openai.com/api-keys) |
+
+### API 키 설정 (CLI가 없을 때만)
+
+모델을 고른 뒤 **설정 → (모델) API 키 설정…** 을 누르고 키를 붙여넣은 뒤 `Enter`를 누릅니다. 입력한 키는 화면에 가려져 보입니다.
+
+- 키는 설정 파일이 아니라 **macOS 키체인**(서비스 이름 `Claude Buddy`)에 모델별로 따로 저장됩니다. 앱을 다시 실행할 필요가 없습니다.
+- 다른 키로 바꾸려면 **API 키 변경…**, 지우려면 **API 키 삭제**를 누릅니다.
+- 키를 찾는 순서는 환경변수(`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`) → 키체인입니다.
+
+### 비용을 줄이는 설정
+
+- 답변 최대 400토큰
+- Claude: 확장 사고(thinking) 끔, effort `low`
+- GPT: 추론 강도 `minimal`
+
+- 요청이 실패하거나(네트워크, 인증, 거절, 모델 이름 변경 등) 응답이 비어 있으면 답을 받지 못했다고 알려줍니다.
+- API 사용량에 따라 각 회사에 요금이 발생할 수 있습니다.
+
+---
+
+## 작동 원리
+
+### 투명한 항상-위 창
+캐릭터, 말풍선, 장난감, 상태 라벨은 모두 **테두리 없는 투명 `NSWindow`** 입니다. 창 레벨을 `NSStatusWindowLevel`로 두고 모든 Space와 전체화면 보조 영역에 참여시켜, 다른 앱이 앞에 와도 가려지지 않습니다.
+
+> tkinter(Tk 9)로 처음 만들었을 때는 macOS에서 투명 배경이 검게 나오고 다른 앱 뒤로 숨는 문제가 있어 PyObjC(Cocoa)로 옮겼습니다.
+
+### Claude Code 작업 감지
+Claude Code는 세션 기록을 JSONL 파일로 남깁니다. 버디는 **설정이나 훅을 건드리지 않고** 이 파일을 읽기만 합니다.
+
+```
+~/.claude/projects/<프로젝트>/<세션ID>.jsonl                 ← 메인 세션 기록
+~/.claude/projects/<프로젝트>/<세션ID>/subagents/
+    agent-<ID>.jsonl                                         ← 서브에이전트 기록
+    agent-<ID>.meta.json                                     ← {"description": ..., "finished": true|false}
+```
+
+1. 1초마다 최근 15분 안에 수정된 세션 파일 중 **가장 최근 것**을 고릅니다.
+2. 파일 끝에 새로 추가된 줄만 읽어서(tail) `tool_use`, `tool_result`, 사고, 답변 블록으로 현재 작업 라벨을 정합니다.
+3. 결과를 기다리는 도구가 있거나 마지막 기록 뒤 25초가 지나지 않았으면 "작업 중"으로 봅니다.
+4. `subagents/*.meta.json`의 `finished` 값으로 서브에이전트의 시작과 종료를 판단합니다.
+
+### 창 위 걷기
+Quartz의 `CGWindowListCopyWindowInfo`로 화면에 보이는 일반 창의 위치를 0.4초마다 읽습니다. 앞에 있는 창에 가려지지 않은 **윗변 구간만 발판으로** 씁니다. 메뉴바에 붙은 최대화 창이나 아주 작은 창은 제외합니다. 이 API는 창 이름을 읽지 않으므로 **화면 기록 권한이 필요 없습니다**.
+
+### 물리
+모든 캐릭터와 장난감은 같은 중력(2200pt/s²) 시뮬레이션을 씁니다. 착지 충격량에 따라 튕김, 찌그러짐, 아픈 표정이 결정됩니다. 다른 높이의 목표로 갈 때는 포물선 점프 속도를 계산해서 뛰어오르거나 뛰어내립니다.
+
+---
+
+## 프로젝트 구조
+
+```
+claude-buddy/
+├── buddy.py              # 실행 진입점 (소스 실행·PyInstaller 빌드 공용)
+├── claude_buddy/         # 본체 패키지
+│   ├── __main__.py       # main(): 앱 시작, --icon 옵션 (python -m claude_buddy)
+│   ├── app.py            # Buddy: 전체 조율 (매 프레임 처리, 행동 결정, 말풍선, 질문하기)
+│   ├── config.py         # 경로·기본 설정·물리 상수, 설정 저장
+│   ├── activity.py       # Claude Code·Codex·Antigravity 작업 기록 추적 → 작업 라벨
+│   ├── world.py          # 모니터 영역, 창 발판, 전체화면 감지
+│   ├── critter.py        # 캐릭터 그리기와 물리·행동 (메인·미니 공용)
+│   ├── toy.py            # 간식·공
+│   ├── widgets.py        # 말풍선, 버튼, 머리 위 상태 칩, 사용량 창
+│   ├── menu.py           # 메뉴 구성과 메뉴 동작
+│   ├── usage.py          # Claude Code 토큰 사용량 (세션 기록 usage를 날짜·프로젝트별로 합계)
+│   ├── i18n.py           # 화면 글자 번역 (한국어·English·日本語·简体中文·Español)
+│   ├── llm.py            # 질문하기 답변 모델(Claude·Gemini·GPT)과 API 키(키체인)
+│   ├── gfx.py            # 색·그리기 도우미, 투명 창, 라벨, 효과음
+│   └── icon.py           # 앱·메뉴바 아이콘
+├── build.sh              # PyInstaller로 독립 실행 앱(.app)과 배포용 zip 빌드
+├── requirements.txt      # 의존성 목록
+├── docs/                 # README 이미지 (언어별 폴더)
+├── LICENSE               # MIT
+├── CHANGELOG.md          # 버전별 변경 사항
+├── THIRD_PARTY_NOTICES.md # 앱에 함께 들어가는 오픈소스 라이선스 고지
+├── README.md             # 영어 (README.ko.md · README.ja.md · README.zh-CN.md · README.es.md)
+└── .gitignore
+```
+
+모듈 의존 방향은 한쪽으로만 흐릅니다(순환 없음).
+
+```
+__main__ → app → menu, critter, toy, widgets, world, activity, usage, llm, icon → i18n, gfx, config
+```
+
+- 새 놀이나 장난감은 `toy.py`와 `menu.py`(메뉴 항목), `app.py`(반응)에 추가합니다.
+- 캐릭터 모양·표정은 `critter.py`의 `draw_critter`, 행동은 `app.py`의 `brain`에서 바꿉니다.
+- 새 설정값은 `config.py`의 `DEFAULTS`에 넣고 `menu.py`에 메뉴를 추가합니다.
+- 화면 글자는 `t("한국어")`로 감싸고 `i18n.py`의 `TR`에 English·日本語·简体中文·Español 번역을 넣습니다. `python -m claude_buddy.i18n`이 빠진 번역과 빈칸 이름을 검사합니다.
+
+실행 중에 생기는 파일(저장소에는 포함하지 않음):
+
+| 파일 | 내용 |
+|---|---|
+| `~/Library/Application Support/Claude Buddy/settings.json` | 개인 설정 |
+| `.venv/` | 가상환경 (직접 빌드할 때) |
+| `build/`, `dist/` | PyInstaller 빌드 결과 |
+
+---
+
+## 개인정보와 데이터
+
+- 모든 처리는 **내 Mac 안에서만** 이뤄집니다.
+- Claude Code 세션 기록은 **읽기만** 하고 어디에도 보내거나 저장하지 않습니다. 화면에는 도구 이름과 파일 이름 정도만 표시합니다.
+- 외부로 나가는 통신은 질문하기에 입력한 질문을 고른 회사(Anthropic·Google·OpenAI)로 보내는 요청 하나뿐입니다(CLI 또는 API 키로).
+- 계정·회원가입이 없고, 사용 통계·광고·추적 코드도 없습니다.
+- 남는 데이터는 설정 파일과 키체인의 API 키뿐입니다. 지우려면 `~/Library/Application Support/Claude Buddy` 폴더를 삭제하고, 메뉴의 **API 키 삭제**(또는 키체인 접근에서 `Claude Buddy` 항목 삭제)를 쓰세요.
+- 화면 공유 중에는 작업 라벨(파일명 등)이 보일 수 있으니, 필요하면 메뉴바 아이콘 → **캐릭터 숨기기**를 쓰세요.
+
+---
+
+## 문제 해결
+
+| 증상 | 해결 |
+|---|---|
+| "확인되지 않은 개발자" 경고로 열리지 않음 | [처음 한 번 실행 허용](#3-처음-한-번-실행-허용)을 참고하세요. |
+| 앱을 더블클릭해도 아무것도 안 뜸 | 터미널에서 `"/Applications/Claude Buddy.app/Contents/MacOS/Claude Buddy"`를 실행해 오류 메시지를 확인하세요. |
+| 에이전트 작업이 안 보임 | 설정에서 "에이전트 작업 보기"가 켜져 있는지, 최근 15분 안에 활동한 세션이 있는지 확인하세요. |
+| 질문하기에서 AI가 답하지 않음 | 고른 모델의 CLI에 로그인돼 있는지(`claude`, `codex`, `agy`), 없다면 API 키가 맞는지 확인하세요. [AI에게 질문하기](#ai에게-질문하기-선택)를 참고하세요. |
+| 캐릭터가 안 보임 | 전체화면 앱이 앞에 있거나, 메뉴바 아이콘에서 숨김 상태일 수 있습니다. |
+| 캐릭터가 창 위로 너무 자주 올라감 | 설정에서 "창 위로 올라가기"를 끄세요. |
+
+---
+
+## 알려진 제한 사항
+
+- macOS 전용이며, 배포 앱은 Apple Silicon 전용입니다.
+- Apple 공증을 받지 않아 처음 실행할 때 허용 절차가 필요합니다.
+- 화면 공유 중인지는 감지하지 못합니다. 필요하면 직접 숨기세요.
+- 각 에이전트는 **가장 최근에 활동한 세션 하나**만 따라갑니다.
+- Gemini CLI는 아직 지원하지 않습니다. Antigravity는 로그에 남는 정보만 보여서, 어떤 도구를 쓰는지는 표시하지 못하고 단계 번호만 보여줍니다.
+- 세션 기록 형식이 바뀌면 작업 라벨이 정확하지 않을 수 있습니다.
+- 질문하기는 이전 대화를 기억하지 않고 한 번에 한 질문만 답합니다.
+
+---
+
+## 출처
+
+- 캐릭터: Anthropic Claude 마스코트에서 영감을 받은 팬메이드 픽셀아트이며, Anthropic과 공식 관계는 없습니다.
+- "Claude"는 Anthropic의 상표이고, Codex는 OpenAI, Antigravity·Gemini는 Google의 제품입니다. 이 프로젝트는 비공식 팬 프로젝트이며 어느 회사의 승인이나 후원도 받지 않았습니다.
+- 앱에 함께 들어가는 오픈소스 구성 요소와 라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 있습니다(앱 안 `Contents/Resources`에도 포함).
+- 이 프로젝트는 [MIT 라이선스](LICENSE)로 배포됩니다.
