@@ -44,6 +44,7 @@ class Tail:
         self.off = max(0, path.stat().st_size - backlog)
         self.skip_partial = self.off > 0
         self.label, self.pending, self.last = None, set(), 0.0
+        self.ended = False  # 답변을 마쳤다는 기록(end_turn)을 봤는지
 
     def poll(self):
         try:
@@ -76,6 +77,8 @@ class Tail:
         except (KeyError, ValueError, AttributeError):
             ts = time.time()
         content = msg.get("content")
+        if t in ("user", "assistant"):
+            self.ended = False
         if t == "user":
             if isinstance(content, str):
                 self.label, self.last = "새 요청 받음", ts
@@ -95,8 +98,12 @@ class Tail:
                 elif bt == "text":
                     self.label = "답변 작성 중"
             self.last = ts
+            # 턴이 끝나면 25초 기다리지 않고 바로 완료 (Stop 훅이 이어가면 다음 기록이 다시 작업 중으로 바꿈)
+            self.ended = msg.get("stop_reason") == "end_turn" and not self.pending
 
     def busy(self, now):
+        if self.ended:
+            return False
         # 도구 결과를 기다리는 중이면 오래 걸려도 일하는 중
         return bool(self.pending) and now - self.last < 600 or now - self.last < 25
 
