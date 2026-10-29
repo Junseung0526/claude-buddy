@@ -17,7 +17,7 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
 4. [직접 빌드하기](#직접-빌드하기)
 5. [사용법](#사용법)
 6. [설정](#설정)
-7. [Claude에게 질문하기 (선택)](#claude에게-질문하기-선택)
+7. [AI에게 질문하기 (선택)](#ai에게-질문하기-선택)
 8. [AWS 기능 제거하고 순수 펫으로 쓰기](#aws-기능-제거하고-순수-펫으로-쓰기)
 9. [작동 원리](#작동-원리)
 10. [프로젝트 구조](#프로젝트-구조)
@@ -36,7 +36,7 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
 - **모듈별로 골라 보기**를 지원합니다. 예를 들어 VPC만 집중적으로 볼 수 있습니다.
 - 팁 데이터는 첫 실행 때 한 번만 내려받아 `~/Library/Application Support/Claude Buddy/tips.json`에 저장합니다. 그 뒤로는 오프라인에서도 동작합니다.
 
-### 2. Claude Code 작업 실시간 표시
+### 2. AI 에이전트 작업 실시간 표시
 - 캐릭터 머리 위의 작은 라벨에 Claude Code가 지금 하는 일을 보여줍니다.
 
   | 라벨 예시 | 의미 |
@@ -56,6 +56,13 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
 - 작업하는 동안 캐릭터는 제자리에서 **타자를 치는 동작**을 합니다. 작업이 끝나면 한 번 깡충 뜁니다.
 - **서브에이전트가 실행되면 작은 캐릭터가 하나씩 등장**합니다. 최대 6명까지 나오며, 각자 머리 위에 자기 작업을 표시하고 메인 캐릭터 옆에서 함께 일합니다. 서브에이전트가 끝나면 "완료!"를 외치고 점프한 뒤 화면 밖으로 퇴장합니다.
 - 작은 캐릭터를 클릭하면 그 서브에이전트가 맡은 작업과 현재 상태를 말풍선으로 보여줍니다.
+- **다른 AI 에이전트도 함께 보여줍니다.** 해당 에이전트가 일하는 동안 전용 캐릭터가 나와 옆에서 작업을 표시하고, 끝나면 퇴장합니다. API 키 없이 내 Mac에 남는 작업 기록만 읽습니다.
+
+  | 에이전트 | 캐릭터 | 읽는 기록 | 표시하는 작업 |
+  |---|---|---|---|
+  | Claude Code | 주황 (메인) | `~/.claude/projects/` 세션 JSONL | 파일 읽기·수정, 명령, 검색, 서브에이전트 등 |
+  | Codex (GPT) | 초록 몸 + 흰 고리 | `~/.codex/sessions/` 세션 JSONL | 새 요청, 생각 중, 명령 실행, 파일 수정, 답변 작성 |
+  | Antigravity (Gemini) | 파란 몸 + 보라 반짝이 | `~/.gemini/antigravity-cli/log/`, `~/.gemini/antigravity/log/` | 새 요청, 도구 실행 단계, 완료 |
 
 ### 3. 캐릭터 동작
 - **60fps 애니메이션**을 사용합니다. 걸을 때 앞으로 기울고, 다리가 번갈아 들리고, 착지할 때 찌그러졌다 펴집니다(squash & stretch). 시선과 기울기는 부드럽게 따라갑니다.
@@ -82,7 +89,7 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
 | 메뉴 | 설명 |
 |---|---|
 | 다음 팁 | 바로 다음 팁 보기 |
-| 질문하기… | 궁금한 내용을 입력하면 관련 팁을 찾아 줌 ([Claude 연동 시](#claude에게-질문하기-선택) Claude가 직접 답변) |
+| 질문하기… | 궁금한 내용을 입력하면 관련 팁을 찾아 줌 ([API 키 설정 시](#ai에게-질문하기-선택) Claude·Gemini·GPT가 직접 답변) |
 | 모듈별 팁 | 특정 모듈의 팁만 보기 |
 | 간식 주기 | 커서 위치에 쿠키가 떨어지고, 캐릭터가 달려가서 먹음. 쿠키는 드래그로 옮길 수 있음 |
 | 공놀이 | 공을 던지면 쫓아가서 물고 커서 쪽으로 가져옴. 다시 던질 때까지 기다림 |
@@ -190,7 +197,8 @@ cd claude-buddy
 | 걷는 속도 | `speed` | 느리게 / 보통 / 빠르게 | 보통 (`55`) |
 | 소리 | `sound` | 켜기 / 끄기 | 켜기 |
 | 창 위로 올라가기 | `windows` | 켜기 / 끄기 | 켜기 |
-| Claude Code 작업 보기 | `activity` | 켜기 / 끄기 | 켜기 |
+| 에이전트 작업 보기 | `activity` | 켜기 / 끄기 | 켜기 |
+| 질문 답변 모델 (팁 모듈이 있을 때만) | `ask_provider` | Claude / Gemini / GPT | Claude (`claude`) |
 
 `settings.json`을 직접 고쳐도 됩니다(앱 재시작 후 적용).
 
@@ -207,33 +215,41 @@ cd claude-buddy
 
 ---
 
-## Claude에게 질문하기 (선택)
+## AI에게 질문하기 (선택)
 
 **질문하기**는 두 가지 방식으로 답합니다.
 
 | 상황 | 동작 |
 |---|---|
-| Anthropic 인증 정보가 **없을 때** (기본) | 328개 팁에서 키워드로 관련 내용을 찾아 최대 3개까지 보여줌 |
-| 인증 정보가 **있을 때** | 관련 팁 5개를 근거로 붙여 Claude(`claude-haiku-5-5`)가 한국어 3문장 이내로 답변 |
+| API 키가 **없을 때** (기본) | 328개 팁에서 키워드로 관련 내용을 찾아 최대 3개까지 보여줌 |
+| API 키가 **있을 때** | 관련 팁 5개를 근거로 붙여 고른 모델이 한국어 3문장 이내로 답변 |
+
+### 답변 모델 고르기
+
+메뉴의 **설정 → 질문 답변 모델**에서 고릅니다. 모두 짧은 답에 맞춘 저렴한 모델입니다.
+
+| 선택 | 모델 | 키 받는 곳 |
+|---|---|---|
+| Claude | `claude-haiku-5-5` | [Anthropic Console](https://console.anthropic.com/) |
+| Gemini | `gemini-flash-lite-latest` | [Google AI Studio](https://aistudio.google.com/apikey) |
+| GPT | `gpt-5-mini` | [OpenAI Platform](https://platform.openai.com/api-keys) |
 
 ### API 키 설정
 
-메뉴의 **설정 → Claude API 키 설정…** 을 누르고 키를 붙여넣은 뒤 `Enter`를 누릅니다.
+모델을 고른 뒤 **설정 → (모델) API 키 설정…** 을 누르고 키를 붙여넣은 뒤 `Enter`를 누릅니다. 입력한 키는 화면에 가려져 보입니다.
 
-- 키는 설정 파일이 아니라 **macOS 키체인**(서비스 이름 `Claude Buddy`)에 저장됩니다. 앱을 다시 실행할 필요가 없습니다.
-- 다른 키로 바꾸려면 **Claude API 키 변경…**, 지우려면 **Claude API 키 삭제**를 누릅니다.
-- 키를 찾는 순서는 `ANTHROPIC_API_KEY` 환경변수 → 키체인 → Anthropic CLI 로그인(`ant auth login`) 정보입니다.
+- 키는 설정 파일이 아니라 **macOS 키체인**(서비스 이름 `Claude Buddy`)에 모델별로 따로 저장됩니다. 앱을 다시 실행할 필요가 없습니다.
+- 다른 키로 바꾸려면 **API 키 변경…**, 지우려면 **API 키 삭제**를 누릅니다.
+- 키를 찾는 순서는 환경변수(`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`) → 키체인입니다. Claude는 둘 다 없으면 Anthropic CLI 로그인(`ant auth login`) 정보를 씁니다.
 
 ### 비용을 줄이는 설정
 
-질문하기는 짧은 답만 필요해서 비용이 가장 적게 들도록 맞춰 두었습니다.
-
-- 모델: 가장 저렴한 Claude Haiku 5.5
-- 확장 사고(thinking) 끔, effort `low`
 - 답변 최대 400토큰, 근거로 붙이는 팁은 최대 5개
+- Claude: 확장 사고(thinking) 끔, effort `low`
+- GPT: 추론 강도 `minimal`
 
-- 요청이 실패하거나(네트워크, 인증, 거절 등) 응답이 비어 있으면 자동으로 팁 검색 결과를 보여줍니다.
-- API 사용량에 따라 요금이 발생할 수 있습니다.
+- 요청이 실패하거나(네트워크, 인증, 거절, 모델 이름 변경 등) 응답이 비어 있으면 자동으로 팁 검색 결과를 보여줍니다.
+- API 사용량에 따라 각 회사에 요금이 발생할 수 있습니다.
 
 ---
 
@@ -262,7 +278,7 @@ git commit -m "Remove AWS tips module"
 - `requirements.txt`의 `anthropic`, `certifi`: 팁 모듈에서만 쓰므로 지워도 됩니다.
 - 이 README의 AWS 관련 절(주요 기능 1번, Claude에게 질문하기, 출처의 cloud-cbt)
 
-> **다른 팁 모듈로 바꾸고 싶다면**: `aws_tips.py`와 같은 이름의 함수(`load_tips`, `search_tips`, `ask_claude`)와 `MODULES` 딕셔너리를 가진 파일을 만들면 됩니다. 팁 하나는 `{"module": 번호, "head": 제목, "text": 내용}` 형식입니다. 파일 이름을 바꿀 때는 `claude_buddy/config.py`의 `from . import aws_tips` 부분도 함께 바꾸세요.
+> **다른 팁 모듈로 바꾸고 싶다면**: `aws_tips.py`와 같은 이름의 함수(`load_tips`, `search_tips`, `ask`)와 `MODULES` 딕셔너리를 가진 파일을 만들면 됩니다. 팁 하나는 `{"module": 번호, "head": 제목, "text": 내용}` 형식입니다. 파일 이름을 바꿀 때는 `claude_buddy/config.py`의 `from . import aws_tips` 부분도 함께 바꾸세요.
 
 ---
 
@@ -305,15 +321,16 @@ claude-buddy/
 │   ├── __main__.py       # main(): 앱 시작, --icon 옵션 (python -m claude_buddy)
 │   ├── app.py            # Buddy: 전체 조율 (매 프레임 처리, 행동 결정, 말풍선, 질문하기)
 │   ├── config.py         # 경로·기본 설정·물리 상수, 설정 저장, 선택 모듈 불러오기
-│   ├── activity.py       # Claude Code 세션 기록 추적 → 작업 라벨
+│   ├── activity.py       # Claude Code·Codex·Antigravity 작업 기록 추적 → 작업 라벨
 │   ├── world.py          # 모니터 영역, 창 발판, 전체화면 감지
 │   ├── critter.py        # 캐릭터 그리기와 물리·행동 (메인·미니 공용)
 │   ├── toy.py            # 간식·공
 │   ├── widgets.py        # 말풍선, 버튼, 머리 위 상태 칩
 │   ├── menu.py           # 메뉴 구성과 메뉴 동작
+│   ├── llm.py            # 질문하기 답변 모델(Claude·Gemini·GPT)과 API 키(키체인)
 │   ├── gfx.py            # 색·그리기 도우미, 투명 창, 라벨, 효과음
 │   ├── icon.py           # 앱·메뉴바 아이콘
-│   └── aws_tips.py       # (선택) AWS 시험 팁: 받기·검색·Claude 질문. 지우면 순수 펫
+│   └── aws_tips.py       # (선택) AWS 시험 팁: 받기·검색·질문. 지우면 순수 펫
 ├── build.sh              # PyInstaller로 독립 실행 앱(.app)과 배포용 zip 빌드
 ├── requirements.txt      # 의존성 목록
 ├── README.md
@@ -347,7 +364,7 @@ __main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx,
 - Claude Code 세션 기록은 **읽기만** 하고 어디에도 보내거나 저장하지 않습니다. 화면에는 도구 이름과 파일 이름 정도만 표시합니다.
 - 외부로 나가는 통신은 두 가지뿐입니다.
   1. 첫 실행 때 cloud-cbt 페이지에서 팁을 받아오는 요청
-  2. (Claude 연동 시) 질문하기에 입력한 질문과 관련 팁을 Anthropic API로 보내는 요청
+  2. (API 키 설정 시) 질문하기에 입력한 질문과 관련 팁을 고른 회사(Anthropic·Google·OpenAI) API로 보내는 요청
 - 화면 공유 중에는 작업 라벨(파일명 등)이 보일 수 있으니, 필요하면 메뉴바 아이콘 → **캐릭터 숨기기**를 쓰세요.
 
 ---
@@ -359,8 +376,8 @@ __main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx,
 | "확인되지 않은 개발자" 경고로 열리지 않음 | [처음 한 번 실행 허용](#3-처음-한-번-실행-허용)을 참고하세요. |
 | 앱을 더블클릭해도 아무것도 안 뜸 | 터미널에서 `"/Applications/Claude Buddy.app/Contents/MacOS/Claude Buddy"`를 실행해 오류 메시지를 확인하세요. |
 | 팁이 안 나오고 오류가 남 | 첫 실행에는 인터넷이 필요합니다. `~/Library/Application Support/Claude Buddy/tips.json`을 지우고 다시 실행해 보세요. |
-| Claude Code 작업이 안 보임 | 설정에서 "Claude Code 작업 보기"가 켜져 있는지, 최근 15분 안에 활동한 세션이 있는지 확인하세요. |
-| 질문하기에서 Claude가 답하지 않음 | 인증 정보가 없으면 팁 검색으로 대신 답합니다. [Claude에게 질문하기](#claude에게-질문하기-선택)를 참고하세요. |
+| 에이전트 작업이 안 보임 | 설정에서 "에이전트 작업 보기"가 켜져 있는지, 최근 15분 안에 활동한 세션이 있는지 확인하세요. |
+| 질문하기에서 AI가 답하지 않음 | 고른 모델의 API 키가 없거나 잘못되면 팁 검색으로 대신 답합니다. [AI에게 질문하기](#ai에게-질문하기-선택)를 참고하세요. |
 | 캐릭터가 안 보임 | 전체화면 앱이 앞에 있거나, 메뉴바 아이콘에서 숨김 상태일 수 있습니다. |
 | 캐릭터가 창 위로 너무 자주 올라감 | 설정에서 "창 위로 올라가기"를 끄세요. |
 
@@ -371,7 +388,8 @@ __main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx,
 - macOS 전용이며, 배포 앱은 Apple Silicon 전용입니다.
 - Apple 공증을 받지 않아 처음 실행할 때 허용 절차가 필요합니다.
 - 화면 공유 중인지는 감지하지 못합니다. 필요하면 직접 숨기세요.
-- Claude Code 작업은 **가장 최근에 활동한 세션 하나**만 따라갑니다.
+- 각 에이전트는 **가장 최근에 활동한 세션 하나**만 따라갑니다.
+- Gemini CLI는 아직 지원하지 않습니다. Antigravity는 로그에 남는 정보만 보여서, 어떤 도구를 쓰는지는 표시하지 못하고 단계 번호만 보여줍니다.
 - 세션 기록 형식이 바뀌면 작업 라벨이 정확하지 않을 수 있습니다.
 - 질문하기의 기본 검색은 키워드 일치 방식이라, 표현이 많이 다르면 못 찾을 수 있습니다.
 

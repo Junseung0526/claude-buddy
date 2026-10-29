@@ -92,6 +92,14 @@ def draw_critter(c, s):
             fill(ex, ey, P, P * 1.25, EYE)
     if face == "surprised":
         fill(bx + bw / 2 - P * 0.35, by + bh * 0.2, P * 0.7, P * 0.7, EYE)
+    if getattr(c, "mark", None):  # 다른 에이전트 표식 (머리 위)
+        px, color = c.mark
+        mp = max(1.0, P * 0.5)
+        mx, my = W / 2 - len(px[0]) * mp / 2, by + bh + P * 0.4
+        for r, row in enumerate(px):
+            for col, ch in enumerate(row):
+                if ch == "X":
+                    fill(mx + col * mp, my + (len(px) - 1 - r) * mp, mp, mp, color)
     if s["emote"] and s["emote"][0] == HEART:
         hp = max(1.5, P * 0.45)
         hx, hy = min(bx + bw + P * 0.5 - 3.5 * hp, W - 7 * hp), by + bh + P * 0.6 + s["emoteRise"]

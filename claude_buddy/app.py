@@ -14,10 +14,11 @@ from Quartz import (
     CGEventSourceSecondsSinceLastEventType, kCGAnyInputEventType, kCGEventSourceStateHIDSystemState,
 )
 
+from . import llm
 from .activity import Activity
 from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, aws_tips, save_settings
 from .critter import Critter
-from .gfx import GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, play, rgb
+from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, play, rgb
 from .icon import icon_image
 from .menu import Ctl
 from .toy import TOY, Toy
@@ -67,7 +68,7 @@ class Buddy:
         if key == "scale":
             self.main.set_scale(val)
             for c in self.minis.values():
-                c.set_scale(max(3, round(val * 0.55)))
+                c.set_scale(max(3, round(val * (0.7 if c.mark else 0.55))))
         if key == "interval":
             self.next_tip_at = min(self.next_tip_at, time.time() + val)
         if key == "activity" and not val:
@@ -162,8 +163,10 @@ class Buddy:
     # ----- 미니 (서브에이전트)
     def add_mini(self, aid):
         i = len(self.minis)
-        c = Critter(self, self.world, max(3, round(self.cfg["scale"] * 0.55)),
-                    self.main.x + random.uniform(-40, 40), MINI_COLORS[i % len(MINI_COLORS)], mini=True)
+        look = AGENT_LOOKS.get(self.activity.sub(aid).get("kind"))
+        c = Critter(self, self.world, max(3, round(self.cfg["scale"] * (0.7 if look else 0.55))),
+                    self.main.x + random.uniform(-40, 40), look[0] if look else MINI_COLORS[i % len(MINI_COLORS)], mini=True)
+        c.mark = (look[1], rgb(look[2])) if look else None
         c.y = self.main.y
         c.hop(380, "happy", 0.8)
         c.emote("뿅!")
@@ -180,9 +183,9 @@ class Buddy:
 
     def show_mini_info(self, c):
         aid = next((a for a, v in self.minis.items() if v is c), None)
-        s = self.activity.subs.get(aid)
+        s = self.activity.sub(aid)
         if s:
-            self.show({"module": 0, "head": f"서브에이전트 · {s['desc']}",
+            self.show({"module": 0, "head": s["desc"] if s.get("kind") else f"서브에이전트 · {s['desc']}",
                        "text": f"지금: {s['tail'].label or '준비 중'}"}, anchor=c)
 
     # ----- 매 프레임
@@ -237,7 +240,7 @@ class Buddy:
             if now > mc.blink_at + 0.12:
                 mc.blink_at = now + random.uniform(2.5, 6)
             mc.render()
-            s = self.activity.subs.get(aid)
+            s = self.activity.sub(aid)
             chip = self.mini_chips.get(aid)
             if chip:
                 chip.set((s["tail"].label or "준비 중") if s and not mc.done_at else None)
@@ -412,6 +415,9 @@ class Buddy:
         c = anchor or self.main
         if t is None:
             pool = [x for x in self.tips if self.module in (None, x["module"])]
+            if not pool:  # 팁을 못 받아 왔으면 띄울 게 없음
+                self.next_tip_at = time.time() + self.cfg["interval"]
+                return
             t = pool[self.idx % len(pool)]
             self.idx += 1
             play(self.cfg, "Pop")
@@ -452,6 +458,10 @@ class Buddy:
         self.bubble_until = time.time() + SHOW_SEC
 
     # ----- 물어보기
+    def provider(self):
+        p = self.cfg.get("ask_provider")
+        return p if p in llm.PROVIDERS else "claude"
+
     def asking(self):
         return bool(self.ask_win and self.ask_win.isVisible())
 
@@ -496,7 +506,7 @@ class Buddy:
             self.ask_win.orderOut_(None)
             self.ask_win = None
         if key.strip():
-            ok = aws_tips.save_api_key(key)
+            ok = llm.save_api_key(self.provider(), key)
             self.main.emote("키 저장!" if ok else "저장 실패", GRAY if not ok else ORANGE)
 
     def submit_ask(self, q):
@@ -512,7 +522,7 @@ class Buddy:
         c.feel("work", 30)
 
         def work():
-            answer = aws_tips.ask_claude(q, found)
+            answer = aws_tips.ask(q, found, self.provider())
             AppHelper.callAfter(self.answer, q, found, answer)
 
         threading.Thread(target=work, daemon=True).start()
@@ -521,7 +531,7 @@ class Buddy:
         c = self.main
         c.emote_until = c.face_until = 0
         if answer:
-            self.show({"module": 0, "head": f"질문 · {q[:40]}", "text": answer})
+            self.show({"module": 0, "head": f"{llm.PROVIDERS[self.provider()][0]} · {q[:40]}", "text": answer})
         elif found:
             results = list(found[:3])
 

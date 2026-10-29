@@ -19,6 +19,13 @@ ORANGE_HEX = "#D97757"
 ORANGE, EYE, PINK, TEAR, GRAY = rgb(ORANGE_HEX), rgb("#1F1F1F"), rgb("#F2A0A8", 0.8), rgb("#7EC8F2"), rgb("#8A8A8A")
 HEART = "<3"  # 이모트 대신 픽셀 하트를 그리라는 표시
 HEART_PX = [".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."]
+# 다른 에이전트 캐릭터: 몸 색, 머리 위 표식(픽셀), 표식 색
+STAR_PX = ["...X...", "...X...", "..XXX..", "XXXXXXX", "..XXX..", "...X...", "...X..."]
+RING_PX = [".XXX.", "X...X", "X...X", "X...X", ".XXX."]
+AGENT_LOOKS = {
+    "gemini": ("#4C8DF6", STAR_PX, "#B9A6FF"),  # Antigravity·Gemini: 파란 몸 + 반짝이
+    "gpt": ("#10A37F", RING_PX, "#FFFFFF"),     # Codex·GPT: 초록 몸 + 고리
+}
 MINI_COLORS = ["#E39A5B", "#C96B4E", "#E0866F", "#D98E4A", "#CF7A63", "#E5A177"]
 
 

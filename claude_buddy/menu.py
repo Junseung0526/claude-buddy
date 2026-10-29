@@ -6,6 +6,7 @@ import objc
 from AppKit import NSApp, NSMenu, NSMenuItem
 from Foundation import NSObject
 
+from . import llm
 from .config import aws_tips
 
 
@@ -32,14 +33,18 @@ class Ctl(NSObject):
     def ask_(self, s):
         self.b.open_ask()
 
+    def setProvider_(self, s):
+        self.b.set_cfg("ask_provider", list(llm.PROVIDERS)[s.tag()])
+
     def setKey_(self, s):
-        self.b.open_input("Anthropic API 키를 붙여넣고 Enter (sk-ant-…)", "keySubmit:", secure=True)
+        name, _, _, _, hint = llm.PROVIDERS[self.b.provider()]
+        self.b.open_input(f"{name} API 키를 붙여넣고 Enter ({hint})", "keySubmit:", secure=True)
 
     def keySubmit_(self, s):
         self.b.submit_key(s.stringValue())
 
     def deleteKey_(self, s):
-        aws_tips.delete_api_key()
+        llm.delete_api_key(self.b.provider())
         self.b.main.emote("키 삭제")
 
     def askSubmit_(self, s):
@@ -114,7 +119,7 @@ def build_menu(b, m, status=False):
         head.setEnabled_(False)
         m.addItem_(head)
         for aid, c in b.minis.items():
-            s = b.activity.subs.get(aid)
+            s = b.activity.sub(aid)
             if s:
                 it = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(f"   └ {s['desc']}: {s['tail'].label or '준비 중'}", None, "")
                 it.setEnabled_(False)
@@ -135,16 +140,20 @@ def build_menu(b, m, status=False):
     c = b.cfg
     tip_gap = [sub("팁 간격", [item(n, "setInterval:", v, c["interval"] == v) for n, v in
                            (("1분", 60), ("3분", 180), ("5분", 300), ("10분", 600), ("30분", 1800))])] if aws_tips else []
-    if aws_tips:  # 질문하기용 Claude API 키 (키체인에 저장)
-        has_key = aws_tips.api_key() is not None
-        tip_gap += [item("Claude API 키 변경…" if has_key else "Claude API 키 설정…", "setKey:")]
-        tip_gap += [item("Claude API 키 삭제", "deleteKey:")] if has_key else []
+    if aws_tips:  # 질문하기 답변 모델과 그 API 키 (키체인에 저장)
+        prov = b.provider()
+        name = llm.PROVIDERS[prov][0]
+        has_key = llm.api_key(prov) is not None
+        tip_gap += [sub("질문 답변 모델", [item(f"{v[0]} ({v[1]})", "setProvider:", i, k == prov)
+                                       for i, (k, v) in enumerate(llm.PROVIDERS.items())]),
+                    item(f"{name} API 키 변경…" if has_key else f"{name} API 키 설정…", "setKey:")]
+        tip_gap += [item(f"{name} API 키 삭제", "deleteKey:")] if has_key else []
     m.addItem_(sub("설정", tip_gap + [
         sub("크기", [item(n, "setScale:", v, c["scale"] == v) for n, v in (("작게", 4), ("보통", 6), ("크게", 8))]),
         sub("걷는 속도", [item(n, "setSpeed:", v, c["speed"] == v) for n, v in (("느리게", 35), ("보통", 55), ("빠르게", 85))]),
         item("소리", "toggleSound:", on=c["sound"]),
         item("창 위로 올라가기", "toggleWindows:", on=c["windows"]),
-        item("Claude Code 작업 보기", "toggleActivity:", on=c["activity"]),
+        item("에이전트 작업 보기", "toggleActivity:", on=c["activity"]),
     ]))
     if status:
         m.addItem_(item("캐릭터 보이기" if b.manual_hidden else "캐릭터 숨기기", "toggleHidden:"))

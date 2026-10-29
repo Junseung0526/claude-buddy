@@ -13,7 +13,11 @@ except ImportError:
 DATA_DIR = Path.home() / "Library" / "Application Support" / "Claude Buddy"  # 앱 번들 안은 쓰기 불가
 SETTINGS_FILE = DATA_DIR / "settings.json"
 PROJECTS = Path(os.environ.get("BUDDY_PROJECTS", Path.home() / ".claude" / "projects"))
-DEFAULTS = {"interval": 300, "scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True}
+CODEX_SESSIONS = Path(os.environ.get("BUDDY_CODEX", Path.home() / ".codex" / "sessions"))
+# Antigravity CLI·IDE 로그 폴더
+AGY_LOGS = [Path(p) for p in os.environ.get("BUDDY_AGY", "").split(":") if p] or [
+    Path.home() / ".gemini" / "antigravity-cli" / "log", Path.home() / ".gemini" / "antigravity" / "log"]
+DEFAULTS = {"interval": 300, "scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True, "ask_provider": "claude"}
 SHOW_SEC = 25
 GRAVITY = 2200.0
 BUBBLE_W = 380
