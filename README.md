@@ -5,7 +5,7 @@
 
 Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다른 앱 창 위를 걸어 다닙니다. Claude Code가 일을 시작하면 머리 위에 현재 작업을 띄워 주고, 서브에이전트가 실행되면 작은 캐릭터들이 튀어나와 옆에서 함께 일하는 모습을 보여줍니다. 쓰다듬기, 던지기, 공놀이, 간식 주기, 집중 타이머처럼 함께 놀 수 있는 기능도 있습니다.
 
-지금은 AWS 자격증 공부용 **팁 모듈(`aws_tips.py`)** 이 함께 들어 있어서 정해진 간격마다 시험 포인트를 알려줍니다. 이 모듈은 파일 하나로 분리되어 있어서, **지우기만 하면 순수 펫으로 동작**합니다. 자세한 방법은 [AWS 기능 제거하고 순수 펫으로 쓰기](#aws-기능-제거하고-순수-펫으로-쓰기)를 참고하세요.
+지금은 AWS 자격증 공부용 **팁 모듈(`claude_buddy/aws_tips.py`)** 이 함께 들어 있어서 정해진 간격마다 시험 포인트를 알려줍니다. 이 모듈은 파일 하나로 분리되어 있어서, **지우기만 하면 순수 펫으로 동작**합니다. 자세한 방법은 [AWS 기능 제거하고 순수 펫으로 쓰기](#aws-기능-제거하고-순수-펫으로-쓰기)를 참고하세요.
 
 ---
 
@@ -30,7 +30,7 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
 
 ## 주요 기능
 
-### 1. AWS 시험 팁 (선택 모듈 · `aws_tips.py`)
+### 1. AWS 시험 팁 (선택 모듈 · `claude_buddy/aws_tips.py`)
 - [AWS 클라우드 CBT](https://learningmate-lab.github.io/cloud-cbt/)의 **개념 정리 팁 59개와 문제 해설 269개**, 총 328개의 팁을 무작위 순서로 보여줍니다.
 - 다루는 범위는 모듈 2~7입니다. 글로벌 인프라, IAM, S3, EC2, 데이터베이스, VPC.
 - **모듈별로 골라 보기**를 지원합니다. 예를 들어 VPC만 집중적으로 볼 수 있습니다.
@@ -165,7 +165,7 @@ cd claude-buddy
 버전은 `VERSION=1.1.0 ./build.sh`처럼 지정합니다. 빌드 없이 바로 실행하려면 다음과 같이 합니다.
 
 ```bash
-.venv/bin/python buddy.py
+.venv/bin/python buddy.py          # 또는 .venv/bin/python -m claude_buddy
 ```
 
 ---
@@ -234,10 +234,10 @@ ant auth login
 
 ## AWS 기능 제거하고 순수 펫으로 쓰기
 
-AWS 관련 코드(팁 내려받기, 검색, Claude 질문)는 모두 **`aws_tips.py` 한 파일**에 있습니다. `buddy.py`는 시작할 때 이 모듈을 불러오고, 파일이 없으면 팁 관련 기능을 자동으로 끕니다.
+AWS 관련 코드(팁 내려받기, 검색, Claude 질문)는 모두 **`claude_buddy/aws_tips.py` 한 파일**에 있습니다. `claude_buddy/config.py`가 시작할 때 이 모듈을 불러오고, 파일이 없으면 팁 관련 기능을 자동으로 끕니다.
 
 ```bash
-git rm aws_tips.py
+git rm claude_buddy/aws_tips.py
 rm -f ~/Library/Application\ Support/Claude\ Buddy/tips.json   # 받아 둔 팁 캐시
 git commit -m "Remove AWS tips module"
 ./build.sh                            # 앱 다시 빌드
@@ -257,7 +257,7 @@ git commit -m "Remove AWS tips module"
 - `requirements.txt`의 `anthropic`, `certifi`: 팁 모듈에서만 쓰므로 지워도 됩니다.
 - 이 README의 AWS 관련 절(주요 기능 1번, Claude에게 질문하기, 출처의 cloud-cbt)
 
-> **다른 팁 모듈로 바꾸고 싶다면**: `aws_tips.py`와 같은 이름의 함수(`load_tips`, `search_tips`, `ask_claude`)와 `MODULES` 딕셔너리를 가진 파일을 만들면 됩니다. 팁 하나는 `{"module": 번호, "head": 제목, "text": 내용}` 형식입니다. 파일 이름이나 import 이름을 바꿀 때는 `buddy.py`의 `import aws_tips` 부분도 함께 바꾸세요.
+> **다른 팁 모듈로 바꾸고 싶다면**: `aws_tips.py`와 같은 이름의 함수(`load_tips`, `search_tips`, `ask_claude`)와 `MODULES` 딕셔너리를 가진 파일을 만들면 됩니다. 팁 하나는 `{"module": 번호, "head": 제목, "text": 내용}` 형식입니다. 파일 이름을 바꿀 때는 `claude_buddy/config.py`의 `from . import aws_tips` 부분도 함께 바꾸세요.
 
 ---
 
@@ -295,13 +295,35 @@ Quartz의 `CGWindowListCopyWindowInfo`로 화면에 보이는 일반 창의 위�
 
 ```
 claude-buddy/
-├── buddy.py          # 펫 본체 (작업 감지, 화면/발판, 캐릭터, 말풍선, 메뉴, 설정)
-├── aws_tips.py       # (선택) AWS 시험 팁 모듈: 팁 받기·검색·Claude 질문. 지우면 순수 펫
-├── build.sh          # PyInstaller로 독립 실행 앱(.app)과 배포용 zip 빌드
-├── requirements.txt  # 의존성 목록
+├── buddy.py              # 실행 진입점 (소스 실행·PyInstaller 빌드 공용)
+├── claude_buddy/         # 본체 패키지
+│   ├── __main__.py       # main(): 앱 시작, --icon 옵션 (python -m claude_buddy)
+│   ├── app.py            # Buddy: 전체 조율 (매 프레임 처리, 행동 결정, 말풍선, 질문하기)
+│   ├── config.py         # 경로·기본 설정·물리 상수, 설정 저장, 선택 모듈 불러오기
+│   ├── activity.py       # Claude Code 세션 기록 추적 → 작업 라벨
+│   ├── world.py          # 모니터 영역, 창 발판, 전체화면 감지
+│   ├── critter.py        # 캐릭터 그리기와 물리·행동 (메인·미니 공용)
+│   ├── toy.py            # 간식·공
+│   ├── widgets.py        # 말풍선, 버튼, 머리 위 상태 칩
+│   ├── menu.py           # 메뉴 구성과 메뉴 동작
+│   ├── gfx.py            # 색·그리기 도우미, 투명 창, 라벨, 효과음
+│   ├── icon.py           # 앱·메뉴바 아이콘
+│   └── aws_tips.py       # (선택) AWS 시험 팁: 받기·검색·Claude 질문. 지우면 순수 펫
+├── build.sh              # PyInstaller로 독립 실행 앱(.app)과 배포용 zip 빌드
+├── requirements.txt      # 의존성 목록
 ├── README.md
 └── .gitignore
 ```
+
+모듈 의존 방향은 한쪽으로만 흐릅니다(순환 없음).
+
+```
+__main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx, config
+```
+
+- 새 놀이나 장난감은 `toy.py`와 `menu.py`(메뉴 항목), `app.py`(반응)에 추가합니다.
+- 캐릭터 모양·표정은 `critter.py`의 `draw_critter`, 행동은 `app.py`의 `brain`에서 바꿉니다.
+- 새 설정값은 `config.py`의 `DEFAULTS`에 넣고 `menu.py`에 메뉴를 추가합니다.
 
 실행 중에 생기는 파일(저장소에는 포함하지 않음):
 
@@ -311,18 +333,6 @@ claude-buddy/
 | `~/Library/Application Support/Claude Buddy/settings.json` | 개인 설정 |
 | `.venv/` | 가상환경 (직접 빌드할 때) |
 | `build/`, `dist/` | PyInstaller 빌드 결과 |
-
-주요 구성:
-
-| 파일 | 구성 요소 | 역할 |
-|---|---|---|
-| `aws_tips.py` | `load_tips` / `search_tips` / `ask_claude` | 팁 로드·검색, Claude 질의 |
-| `buddy.py` | `Tail` / `Activity` | Claude Code 세션 기록 추적 |
-| `buddy.py` | `World` | 모니터 영역, 창 발판, 전체화면 감지 |
-| `buddy.py` | `Critter` / `draw_critter` | 캐릭터 물리·행동·포즈와 그리기 (메인·미니 공용) |
-| `buddy.py` | `Toy` | 간식·공 |
-| `buddy.py` | `Chip` / `BubbleView` / `Pill` | 상태 라벨, 말풍선, 버튼 |
-| `buddy.py` | `Buddy` | 전체 조율 (매 프레임 처리, 메뉴, 설정) |
 
 ---
 
