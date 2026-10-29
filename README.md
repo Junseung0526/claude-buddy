@@ -214,18 +214,23 @@ cd claude-buddy
 | 상황 | 동작 |
 |---|---|
 | Anthropic 인증 정보가 **없을 때** (기본) | 328개 팁에서 키워드로 관련 내용을 찾아 최대 3개까지 보여줌 |
-| 인증 정보가 **있을 때** | 관련 팁 5개를 근거로 붙여 Claude(`claude-opus-5-5`)가 한국어 3문장 이내로 답변 |
+| 인증 정보가 **있을 때** | 관련 팁 5개를 근거로 붙여 Claude(`claude-haiku-5-5`)가 한국어 3문장 이내로 답변 |
 
-Claude 답변을 쓰려면 아래 중 하나를 설정하고 앱을 다시 실행하세요.
+### API 키 설정
 
-```bash
-# 방법 1: API 키 (앱을 터미널에서 실행할 때)
-export ANTHROPIC_API_KEY="..."
-"/Applications/Claude Buddy.app/Contents/MacOS/Claude Buddy"
+메뉴의 **설정 → Claude API 키 설정…** 을 누르고 키를 붙여넣은 뒤 `Enter`를 누릅니다.
 
-# 방법 2: Anthropic CLI 로그인 (더블클릭 실행에도 적용)
-ant auth login
-```
+- 키는 설정 파일이 아니라 **macOS 키체인**(서비스 이름 `Claude Buddy`)에 저장됩니다. 앱을 다시 실행할 필요가 없습니다.
+- 다른 키로 바꾸려면 **Claude API 키 변경…**, 지우려면 **Claude API 키 삭제**를 누릅니다.
+- 키를 찾는 순서는 `ANTHROPIC_API_KEY` 환경변수 → 키체인 → Anthropic CLI 로그인(`ant auth login`) 정보입니다.
+
+### 비용을 줄이는 설정
+
+질문하기는 짧은 답만 필요해서 비용이 가장 적게 들도록 맞춰 두었습니다.
+
+- 모델: 가장 저렴한 Claude Haiku 5.5
+- 확장 사고(thinking) 끔, effort `low`
+- 답변 최대 400토큰, 근거로 붙이는 팁은 최대 5개
 
 - 요청이 실패하거나(네트워크, 인증, 거절 등) 응답이 비어 있으면 자동으로 팁 검색 결과를 보여줍니다.
 - API 사용량에 따라 요금이 발생할 수 있습니다.
@@ -374,5 +379,4 @@ __main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx,
 
 ## 출처
 
-- 시험 팁 콘텐츠: [AWS 클라우드 CBT](https://learningmate-lab.github.io/cloud-cbt/) (learningmate-lab). 저장소에는 포함하지 않고, 실행할 때 해당 페이지에서 받아옵니다. 콘텐츠의 권리는 원저작자에게 있습니다.
 - 캐릭터: Anthropic Claude 마스코트에서 영감을 받은 팬메이드 픽셀아트이며, Anthropic과 공식 관계는 없습니다.

@@ -32,6 +32,16 @@ class Ctl(NSObject):
     def ask_(self, s):
         self.b.open_ask()
 
+    def setKey_(self, s):
+        self.b.open_input("Anthropic API 키를 붙여넣고 Enter (sk-ant-…)", "keySubmit:", secure=True)
+
+    def keySubmit_(self, s):
+        self.b.submit_key(s.stringValue())
+
+    def deleteKey_(self, s):
+        aws_tips.delete_api_key()
+        self.b.main.emote("키 삭제")
+
     def askSubmit_(self, s):
         self.b.submit_ask(s.stringValue())
 
@@ -125,6 +135,10 @@ def build_menu(b, m, status=False):
     c = b.cfg
     tip_gap = [sub("팁 간격", [item(n, "setInterval:", v, c["interval"] == v) for n, v in
                            (("1분", 60), ("3분", 180), ("5분", 300), ("10분", 600), ("30분", 1800))])] if aws_tips else []
+    if aws_tips:  # 질문하기용 Claude API 키 (키체인에 저장)
+        has_key = aws_tips.api_key() is not None
+        tip_gap += [item("Claude API 키 변경…" if has_key else "Claude API 키 설정…", "setKey:")]
+        tip_gap += [item("Claude API 키 삭제", "deleteKey:")] if has_key else []
     m.addItem_(sub("설정", tip_gap + [
         sub("크기", [item(n, "setScale:", v, c["scale"] == v) for n, v in (("작게", 4), ("보통", 6), ("크게", 8))]),
         sub("걷는 속도", [item(n, "setSpeed:", v, c["speed"] == v) for n, v in (("느리게", 35), ("보통", 55), ("빠르게", 85))]),

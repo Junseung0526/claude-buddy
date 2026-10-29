@@ -6,7 +6,7 @@ import threading
 import time
 
 from AppKit import (
-    NSApp, NSAppearance, NSAppearanceNameAqua, NSColor, NSEvent, NSFont, NSMakeRect, NSMenu, NSStatusBar, NSTextField,
+    NSApp, NSAppearance, NSAppearanceNameAqua, NSColor, NSEvent, NSFont, NSMakeRect, NSMenu, NSSecureTextField, NSStatusBar, NSTextField,
 )
 from Foundation import NSRunLoop, NSRunLoopCommonModes, NSTimer
 from PyObjCTools import AppHelper
@@ -456,6 +456,10 @@ class Buddy:
         return bool(self.ask_win and self.ask_win.isVisible())
 
     def open_ask(self):
+        self.open_input("AWS 관련 질문을 입력하고 Enter (예: S3 Glacier 차이)", "askSubmit:")
+        self.main.emote("?")
+
+    def open_input(self, placeholder, action, secure=False):
         self.close_bubble(reschedule=False)
         if self.ask_win:
             self.ask_win.orderOut_(None)
@@ -468,15 +472,15 @@ class Buddy:
         bv = BubbleView.alloc().initWithFrame_(NSMakeRect(0, 0, w, h))
         bv.tail_x = max(20, min(c.cx - x, w - 20))
         win.setContentView_(bv)
-        field = NSTextField.alloc().initWithFrame_(NSMakeRect(14, 22, w - 28, 26))
-        field.setPlaceholderString_("AWS 관련 질문을 입력하고 Enter (예: S3 Glacier 차이)")
+        field = (NSSecureTextField if secure else NSTextField).alloc().initWithFrame_(NSMakeRect(14, 22, w - 28, 26))
+        field.setPlaceholderString_(placeholder)
         field.setFont_(NSFont.systemFontOfSize_(13))
         field.setTextColor_(rgb("#222222"))  # 다크 모드에서 흰 글자로 안 보이던 문제
         field.setBezeled_(False)
         field.setDrawsBackground_(False)
         field.setFocusRingType_(1)  # 포커스 테두리 없음
         field.setTarget_(self.ctl)
-        field.setAction_("askSubmit:")
+        field.setAction_(action)
         bv.addSubview_(field)
         win.makeKeyAndOrderFront_(None)
         win.makeFirstResponder_(field)
@@ -486,7 +490,14 @@ class Buddy:
             NSApp().activateIgnoringOtherApps_(True)
         self.ask_win = win
         c.state, c.state_until = "look", time.time() + 5
-        c.emote("?")
+
+    def submit_key(self, key):
+        if self.ask_win:
+            self.ask_win.orderOut_(None)
+            self.ask_win = None
+        if key.strip():
+            ok = aws_tips.save_api_key(key)
+            self.main.emote("키 저장!" if ok else "저장 실패", GRAY if not ok else ORANGE)
 
     def submit_ask(self, q):
         if self.ask_win:
