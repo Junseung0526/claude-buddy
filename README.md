@@ -1,10 +1,12 @@
 # Claude Buddy
 
+**한국어** | [English](README.en.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [Español](README.es.md)
+
 > 화면 위를 돌아다니며 **Claude Code·Codex·Antigravity가 지금 하고 있는 작업**을 실시간으로 보여주는 macOS 데스크톱 펫
 
 ![Claude Code, Antigravity, Codex 캐릭터](docs/characters.png)
 
-Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다른 앱 창 위를 걸어 다닙니다. Claude Code가 일을 시작하면 머리 위에 현재 작업을 띄워 주고, 서브에이전트가 실행되면 작은 캐릭터들이 튀어나와 옆에서 함께 일하는 모습을 보여줍니다. 쓰다듬기, 던지기, 공놀이, 간식 주기, 집중 타이머처럼 함께 놀 수 있는 기능도 있고, 궁금한 걸 물으면 로그인된 Claude·Codex·Antigravity CLI로 짧게 답해 줍니다.
+Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다른 앱 창 위를 걸어 다닙니다. Claude Code가 일을 시작하면 머리 위에 현재 작업을 띄워 주고, 서브에이전트가 실행되면 작은 캐릭터들이 튀어나와 옆에서 함께 일하는 모습을 보여줍니다. 쓰다듬기, 던지기, 공놀이, 간식 주기, 집중 타이머처럼 함께 놀 수 있는 기능도 있고, 궁금한 걸 물으면 로그인된 Claude·Codex·Antigravity CLI로 짧게 답해 줍니다. 화면은 한국어, English, 日本語, 简体中文, Español을 지원합니다.
 
 ---
 
@@ -42,11 +44,10 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
   | `계획 정리 중` | 할 일 목록 정리 | 체크리스트에 하나씩 체크 |
   | `답변 작성 중` | 답변 쓰는 중 | 말풍선에 글이 써짐 |
   | `서브에이전트 · (작업 이름)` | 서브에이전트 호출 | 생각 구름 점 |
+  | `확인 필요 · 질문에 답해 주세요`, `확인 필요 · 권한 확인` | 내 대답이나 권한 허락을 기다리는 중 | 손을 흔들며 부름, 알림 |
   | `작업 완료` | 작업이 끝남 (8초간 표시) | 깡충 뛰기 |
 
   ![작업 종류별 소품 애니메이션](docs/animations.png)
-
-  | `확인 필요 · 질문에 답해 주세요`, `확인 필요 · 권한 확인` | 내 대답이나 권한 허락을 기다리는 중 | 손을 흔들며 부름, 알림 |
 
   라벨 왼쪽의 점은 작업 중이면 주황색, 완료되면 초록색입니다.
 
@@ -70,7 +71,20 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
 ### 2. 캐릭터 동작
 - **60fps 애니메이션**을 사용합니다. 걸을 때 앞으로 기울고, 다리가 번갈아 들리고, 착지할 때 찌그러졌다 펴집니다(squash & stretch). 시선과 기울기는 부드럽게 따라갑니다.
 - **표정**이 상황에 따라 바뀝니다. 평소, 깜빡임, 기쁨(^ ^와 볼터치), 놀람, 아픔(눈물), 졸림, 집중, 잠.
-- **혼자 하는 행동**: 가만히 두면 걷기, 쉬기, 두리번거리기, 졸기, 다른 창 위로 점프하기를 번갈아 합니다.
+- **혼자 하는 행동**: 가만히 두면 걷기, 쉬기, 두리번거리기, 졸기, 다른 창 위로 점프하기에 더해 아래 동작을 섞어서 합니다. 밤에는 하품과 잠이 늘고, 우다다와 공중제비는 줄어듭니다.
+
+  | 동작 | 모습 |
+  |---|---|
+  | 춤 | 양팔을 번갈아 들고 들썩이며 음표를 띄움 |
+  | 기지개 | 눈을 감고 팔을 쭉 뻗으며 몸을 늘림 |
+  | 앉기 | 몸을 낮춰 앉아서 가끔 눈을 깜빡임 |
+  | 우다다 | 평소보다 3배 빠르게 달림 |
+  | 공중제비 | 뛰어올라 한 바퀴 돌고 착지 |
+  | 꽈당 | 앞으로 넘어졌다가 "아야.." 하고 일어남 |
+  | 하품 | 입을 크게 벌리고 팔을 살짝 듦 |
+  | 에취 | 숨을 들이마셨다가 "에취!" 하며 앞으로 숙임 |
+
+  ![새 동작](docs/moves.png)
 - **창 위로 올라가 걷기**: 열려 있는 다른 앱 창의 윗변을 발판으로 씁니다. 발판 끝에서 떨어지기도 합니다. 다른 창에 가려진 부분은 발판으로 쓰지 않습니다.
 - **여러 모니터**: 연결된 모든 화면을 오가며 돌아다닙니다.
 - **항상 위에 표시**: 어떤 앱이 앞에 있든, 어떤 데스크톱(Space)에 있든 보입니다. 배경은 완전히 투명합니다.
@@ -183,7 +197,7 @@ cd claude-buddy
 
 1. 실행하면 캐릭터가 화면 아래에 나타나 걷기 시작합니다.
 2. Claude Code·Codex·Antigravity로 작업을 시작하면, 캐릭터가 하던 일을 멈추고 작업 상황을 표시합니다.
-3. 궁금한 게 생기면 **우클릭 → 질문하기**에 입력하고 `Enter`를 누릅니다. `Esc`를 누르면 닫힙니다. 답은 말풍선으로 뜨고 25초 뒤 자동으로 닫힙니다.
+3. 궁금한 게 생기면 **우클릭 → 질문하기**에 입력하고 `Enter`를 누릅니다. `Esc`를 누르면 닫힙니다. 답은 말풍선으로 뜨고 25초 뒤 자동으로 닫힙니다. AI가 만든 답이라 틀릴 수 있다는 안내가 함께 붙습니다.
 
 ---
 
@@ -197,6 +211,7 @@ cd claude-buddy
 | 걷는 속도 | `speed` | 느리게 / 보통 / 빠르게 | 보통 (`55`) |
 | 소리 | `sound` | 켜기 / 끄기 | 켜기 |
 | 알림 (확인 필요·긴 작업 완료) | `notify` | 켜기 / 끄기 | 켜기 |
+| 언어 | `lang` | 시스템 설정 따르기(`auto`) / 한국어(`ko`) / English(`en`) / 日本語(`ja`) / 简体中文(`zh`) / Español(`es`) | 시스템 언어 (언어 설정이 생기기 전부터 쓰던 사람은 한국어) |
 | 창 위로 올라가기 | `windows` | 켜기 / 끄기 | 켜기 |
 | 에이전트 작업 보기 | `activity` | 켜기 / 끄기 | 켜기 |
 | 질문 답변 모델 | `ask_provider` | Claude / Gemini / GPT | Claude (`claude`) |
@@ -211,6 +226,7 @@ cd claude-buddy
  "windows": true,
  "activity": true,
  "notify": true,
+ "lang": "ko",
  "ask_provider": "claude"
 }
 ```
@@ -223,7 +239,7 @@ cd claude-buddy
 
 | 상황 | 동작 |
 |---|---|
-| 고른 모델의 **CLI에 로그인돼 있을 때** (기본) | CLI가 한국어 3문장 이내로 답변. API 키 필요 없음 |
+| 고른 모델의 **CLI에 로그인돼 있을 때** (기본) | CLI가 고른 언어로 3문장 이내로 답변. API 키 필요 없음 |
 | CLI가 없고 **API 키가 있을 때** | 같은 방식으로 API를 직접 불러 답변 |
 | 둘 다 없을 때 | 로그인이나 키가 필요하다고 알려줌 |
 
@@ -312,24 +328,28 @@ claude-buddy/
 │   ├── widgets.py        # 말풍선, 버튼, 머리 위 상태 칩, 사용량 창
 │   ├── menu.py           # 메뉴 구성과 메뉴 동작
 │   ├── usage.py          # Claude Code 토큰 사용량 (세션 기록 usage를 날짜·프로젝트별로 합계)
+│   ├── i18n.py           # 화면 글자 번역 (한국어·English·日本語·简体中文·Español)
 │   ├── llm.py            # 질문하기 답변 모델(Claude·Gemini·GPT)과 API 키(키체인)
 │   ├── gfx.py            # 색·그리기 도우미, 투명 창, 라벨, 효과음
 │   └── icon.py           # 앱·메뉴바 아이콘
 ├── build.sh              # PyInstaller로 독립 실행 앱(.app)과 배포용 zip 빌드
 ├── requirements.txt      # 의존성 목록
-├── README.md
+├── docs/                 # README 이미지 (언어별 폴더)
+├── THIRD_PARTY_NOTICES.md # 앱에 함께 들어가는 오픈소스 라이선스 고지
+├── README.md             # 한국어 (README.en.md · README.ja.md · README.zh-CN.md · README.es.md)
 └── .gitignore
 ```
 
 모듈 의존 방향은 한쪽으로만 흐릅니다(순환 없음).
 
 ```
-__main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx, config
+__main__ → app → menu, critter, toy, widgets, world, activity, usage, llm, icon → i18n, gfx, config
 ```
 
 - 새 놀이나 장난감은 `toy.py`와 `menu.py`(메뉴 항목), `app.py`(반응)에 추가합니다.
 - 캐릭터 모양·표정은 `critter.py`의 `draw_critter`, 행동은 `app.py`의 `brain`에서 바꿉니다.
 - 새 설정값은 `config.py`의 `DEFAULTS`에 넣고 `menu.py`에 메뉴를 추가합니다.
+- 화면 글자는 `t("한국어")`로 감싸고 `i18n.py`의 `TR`에 English·日本語·简体中文·Español 번역을 넣습니다. `python -m claude_buddy.i18n`이 빠진 번역과 빈칸 이름을 검사합니다.
 
 실행 중에 생기는 파일(저장소에는 포함하지 않음):
 
@@ -346,6 +366,8 @@ __main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx,
 - 모든 처리는 **내 Mac 안에서만** 이뤄집니다.
 - Claude Code 세션 기록은 **읽기만** 하고 어디에도 보내거나 저장하지 않습니다. 화면에는 도구 이름과 파일 이름 정도만 표시합니다.
 - 외부로 나가는 통신은 질문하기에 입력한 질문을 고른 회사(Anthropic·Google·OpenAI)로 보내는 요청 하나뿐입니다(CLI 또는 API 키로).
+- 계정·회원가입이 없고, 사용 통계·광고·추적 코드도 없습니다.
+- 남는 데이터는 설정 파일과 키체인의 API 키뿐입니다. 지우려면 `~/Library/Application Support/Claude Buddy` 폴더를 삭제하고, 메뉴의 **API 키 삭제**(또는 키체인 접근에서 `Claude Buddy` 항목 삭제)를 쓰세요.
 - 화면 공유 중에는 작업 라벨(파일명 등)이 보일 수 있으니, 필요하면 메뉴바 아이콘 → **캐릭터 숨기기**를 쓰세요.
 
 ---
@@ -378,3 +400,5 @@ __main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx,
 ## 출처
 
 - 캐릭터: Anthropic Claude 마스코트에서 영감을 받은 팬메이드 픽셀아트이며, Anthropic과 공식 관계는 없습니다.
+- "Claude"는 Anthropic의 상표이고, Codex는 OpenAI, Antigravity·Gemini는 Google의 제품입니다. 이 프로젝트는 비공식 팬 프로젝트이며 어느 회사의 승인이나 후원도 받지 않았습니다.
+- 앱에 함께 들어가는 오픈소스 구성 요소와 라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 있습니다(앱 안 `Contents/Resources`에도 포함).
