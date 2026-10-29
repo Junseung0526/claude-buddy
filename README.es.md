@@ -57,7 +57,7 @@ Un personaje en pixel art inspirado en la mascota de Claude camina por la parte 
 - **Aviso al terminar tareas largas**: cuando termina una tarea que duró más de un minuto, recibes una notificación de macOS aunque estés mirando otra app.
 - **Ventana de uso**: elige **Ver uso…** en el menú para abrir una ventana con los tokens de salida y entrada de hoy, las sesiones y respuestas, un gráfico de barras de los tokens de salida de los últimos 7 días (pasa el ratón sobre una barra para ver el valor exacto) y la salida de hoy por proyecto. Solo suma los campos usage de los registros de sesión y no envía nada a ningún sitio.
 
-  ![Ventana de uso (datos de ejemplo)](docs/usage.png)
+  ![Ventana de uso (datos de ejemplo)](docs/es/usage.png)
 - **Aparece un personaje pequeño por cada subagente en marcha**, hasta seis. Cada uno muestra su tarea sobre la cabeza y trabaja junto al personaje principal. Cuando el subagente termina, grita "¡Listo!", salta y se va caminando fuera de la pantalla.
 - Haz clic en un personaje pequeño para ver en un globo la tarea y el estado actual de ese subagente.
 - **También aparecen otros agentes de IA.** Mientras uno trabaja, su propio personaje aparece junto al principal y muestra su tarea, y se va al terminar. No hace falta clave API: la app solo lee los registros de actividad que esas herramientas dejan en tu Mac.

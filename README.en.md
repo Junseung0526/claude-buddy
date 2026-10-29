@@ -57,7 +57,7 @@ A pixel-art character inspired by the Claude mascot walks along the bottom of yo
 - **Long task finished**: when a task that took more than a minute finishes, you get a macOS notification, even if you're looking at another app.
 - **Usage window**: choose **Usage…** in the menu to open a window with today's output and input tokens, sessions and replies, a bar chart of output tokens for the last 7 days (hover a bar for the exact value) and today's output per project. It only adds up the usage fields in your session logs and sends nothing anywhere.
 
-  ![Usage window (sample data)](docs/usage.png)
+  ![Usage window (sample data)](docs/en/usage.png)
 - **A small character appears for each running subagent**, up to six. Each shows its own task above its head and works next to the main character. When a subagent finishes, it shouts "Done!", jumps and walks off screen.
 - Click a small character to see that subagent's task and current status in a speech bubble.
 - **Other AI agents show up too.** While one is working, its own character appears next to the main one and shows its task, then leaves when done. No API key is needed; the app only reads the activity logs those tools leave on your Mac.
