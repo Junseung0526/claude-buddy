@@ -32,6 +32,7 @@ PLIST="$APP/Contents/Info.plist"
 plutil -replace LSUIElement -bool true "$PLIST"  # Dock 아이콘 없이 메뉴바에만
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$PLIST"
 plutil -replace CFBundleVersion -string "$VERSION" "$PLIST"
+cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/"  # 번들한 오픈소스 라이선스 고지
 codesign --force --deep --sign - "$APP"  # Info.plist를 고쳤으니 ad-hoc 서명 다시
 
 ZIP="dist/Claude-Buddy-macOS-$(uname -m).zip"
