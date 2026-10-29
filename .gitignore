@@ -3,7 +3,7 @@
 __pycache__/
 *.pyc
 
-# 빌드 결과 (로컬 경로가 박힘 → make_app.sh로 다시 생성)
+# 앱 번들
 *.app/
 
 # 개인 설정
@@ -14,3 +14,7 @@ tips.json
 
 # macOS
 .DS_Store
+
+# PyInstaller 빌드 결과
+build/
+dist/
