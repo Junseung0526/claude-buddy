@@ -36,7 +36,7 @@ def ask_cli(provider, system, question):
         return None
     os.makedirs(WORK_DIR, exist_ok=True)
     env = {**os.environ, "PATH": CLI_PATH}
-    prompt = f"{system}\n\n질문: {question}"  # codex·agy는 시스템 프롬프트 옵션이 없음
+    prompt = f"{system}\n\nQuestion: {question}"  # codex·agy는 시스템 프롬프트 옵션이 없음
     out = None
     try:
         if provider == "claude":

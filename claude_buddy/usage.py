@@ -87,12 +87,7 @@ def summary(days=7):
     return today(), [(d, totals[d]) for d, _ in per_day], sorted(projects.items(), key=lambda x: -x[1])
 
 
-def fmt(n):
-    return f"{n / 1e8:.1f}억" if n >= 1e8 else f"{n / 1e4:,.0f}만" if n >= 1e7 else f"{n / 1e4:.1f}만" if n >= 1e4 else f"{n:,}"
-
-
 if __name__ == "__main__":  # 셀프 체크: python -m claude_buddy.usage
-    assert fmt(123) == "123" and fmt(12_300) == "1.2만" and fmt(250_000_000) == "2.5억" and fmt(21_300_000) == "2,130만"
     print(today())
     t, by_day, by_project = summary()
     assert len(by_day) == 7 and by_day[-1][0] == datetime.date.today() and by_day[-1][1] == t[4]

@@ -12,7 +12,7 @@ CODEX_SESSIONS = Path(os.environ.get("BUDDY_CODEX", Path.home() / ".codex" / "se
 # Antigravity CLI·IDE 로그 폴더
 AGY_LOGS = [Path(p) for p in os.environ.get("BUDDY_AGY", "").split(":") if p] or [
     Path.home() / ".gemini" / "antigravity-cli" / "log", Path.home() / ".gemini" / "antigravity" / "log"]
-DEFAULTS = {"scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True, "notify": True, "ask_provider": "claude"}
+DEFAULTS = {"scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True, "notify": True, "lang": "auto", "ask_provider": "claude"}
 SHOW_SEC = 25
 GRAVITY = 2200.0
 BUBBLE_W = 380
@@ -21,7 +21,8 @@ MAX_MINIS = 6
 
 def load_settings():
     try:
-        return {**DEFAULTS, **json.loads(SETTINGS_FILE.read_text())}
+        # 언어 설정이 생기기 전부터 쓰던 사람은 한국어로 쓰고 있었으므로 그대로 한국어
+        return {**DEFAULTS, "lang": "ko", **json.loads(SETTINGS_FILE.read_text())}
     except (OSError, ValueError):
         return dict(DEFAULTS)
 

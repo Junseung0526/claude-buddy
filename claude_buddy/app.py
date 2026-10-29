@@ -15,7 +15,8 @@ from Quartz import (
     CGEventSourceSecondsSinceLastEventType, kCGAnyInputEventType, kCGEventSourceStateHIDSystemState,
 )
 
-from . import llm, usage
+from . import i18n, llm, usage
+from .i18n import localize, t
 from .activity import Activity, label_kind
 from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, save_settings
 from .critter import Critter
@@ -27,12 +28,13 @@ from .widgets import BubbleView, Chip, UsageView, pill
 from .world import World
 
 
-SYSTEM = "당신은 사용자 화면에 사는 데스크톱 펫이자 도우미입니다. 한국어로 3문장 이내로 짧고 정확하게 답하세요."
+SYSTEM = "You are a desktop pet and helper living on the user's screen. Answer in {language} in at most 3 short, accurate sentences."
 
 
 class Buddy:
     def __init__(self, cfg):
         self.cfg = cfg
+        i18n.set_lang(cfg["lang"])
         self.ctl = Ctl.alloc().initWithBuddy_(self)
         self.world = World(cfg)
         v0 = self.world.vfs[0]
@@ -88,6 +90,9 @@ class Buddy:
             self.main.set_scale(val)
             for c in self.minis.values():
                 c.set_scale(max(3, round(val * (0.7 if c.mark else 0.55))))
+        if key == "lang":
+            i18n.set_lang(val)
+            self.chip.text = None  # 칩을 새 언어로 다시 그리게
         if key == "activity" and not val:
             self.chip.close()
             for aid in list(self.minis):
@@ -144,7 +149,7 @@ class Buddy:
         c.vy = max(-lim, min(lim, (y1 - y0) / dt))
         c.state = "air"
         fast = abs(c.vx) + abs(c.vy) > 600
-        c.emote("으아아" if fast else "~")
+        c.emote(t("으아아") if fast else "~")
         if fast:
             c.feel("surprised", 1.2)
 
@@ -166,11 +171,11 @@ class Buddy:
         if self.focus_until:
             self.focus_until = 0.0
             c.state, c.state_until = "rest", time.time() + 1
-            c.emote("취소!", GRAY)
+            c.emote(t("취소!"), GRAY)
         else:
             self.close_bubble()
             self.focus_until = time.time() + 25 * 60
-            c.emote("집중!")
+            c.emote(t("집중!"))
 
     def snooze(self):
         self.close_bubble()
@@ -185,7 +190,7 @@ class Buddy:
         c.mark = (look[1], rgb(look[2])) if look else None
         c.y = self.main.y
         c.hop(380, "happy", 0.8)
-        c.emote("뿅!")
+        c.emote(t("뿅!"))
         c.side = (1 if i % 2 == 0 else -1) * (1 + i // 2)
         c.done_at = None
         self.minis[aid] = c
@@ -201,8 +206,8 @@ class Buddy:
         aid = next((a for a, v in self.minis.items() if v is c), None)
         s = self.activity.sub(aid)
         if s:
-            self.show({"head": s["desc"] if s.get("kind") else f"서브에이전트 · {s['desc']}",
-                       "text": f"지금: {s['tail'].label or '준비 중'}"}, anchor=c)
+            self.show({"head": s["desc"] if s.get("kind") else t("서브에이전트") + f" · {s['desc']}",
+                       "text": t("지금: {label}", label=localize(s["tail"].label or t("준비 중")))}, anchor=c)
 
     # ----- 매 프레임
     def tick(self):
@@ -242,7 +247,7 @@ class Buddy:
         impact = c.physics(dt)
         if impact > 1400:
             c.feel("sad", 1.6)
-            c.emote("아야..", GRAY)
+            c.emote(t("아야.."), GRAY)
         elif impact > 600:
             play(self.cfg, "Bottle")
         c.squash_v = max(0.0, c.squash_v - dt * 0.8)
@@ -295,10 +300,10 @@ class Buddy:
             wait = self.activity.waiting(now)
             if wait and not self.alerted:
                 play(self.cfg, "Funk")
-                notify(self.cfg, "Claude Code 확인 필요", wait)
+                notify(self.cfg, t("Claude Code 확인 필요"), localize(wait))
             self.alerted = bool(wait)
             if self.activity.finished_after >= 60:  # 1분 넘게 걸린 작업만 알림
-                notify(self.cfg, "Claude Code 작업 완료", f"{int(self.activity.finished_after // 60)}분 걸린 작업을 마쳤어요")
+                notify(self.cfg, t("Claude Code 작업 완료"), t("{n}분 걸린 작업을 마쳤어요", n=int(self.activity.finished_after // 60)))
                 self.activity.finished_after = 0.0
             elif self.activity.finished_after:
                 self.activity.finished_after = 0.0
@@ -310,7 +315,7 @@ class Buddy:
                     mc = self.minis[aid]
                     mc.done_at = now
                     mc.hop(420, "happy", 1.5)
-                    mc.emote("완료!", rgb("#2E7D32"), 2)
+                    mc.emote(t("완료!"), rgb("#2E7D32"), 2)
                     play(self.cfg, "Glass")
             for aid in [a for a, mc in self.minis.items() if a not in subs]:
                 self.remove_mini(aid)
@@ -326,14 +331,14 @@ class Buddy:
             c.state, c.state_until = "rest", now + 1
             c.feel("surprised", 0.8)
             c.hop(380, "happy", 1.0)
-            c.emote("어서와요!")
+            c.emote(t("어서와요!"))
         if now - self.active_since > 50 * 60 and not self.bubble and not self.focus_until:
             self.active_since = now
-            self.show({"head": "쉬는 시간", "text": "50분째 쉬지 않고 달리는 중이에요! 일어나서 기지개 한 번 켜고 물 한 잔 마셔요."})
+            self.show({"head": t("쉬는 시간"), "text": t("50분째 쉬지 않고 달리는 중이에요! 일어나서 기지개 한 번 켜고 물 한 잔 마셔요.")})
         today = datetime.date.today()
         if self.night() and self.night_told != today and not self.bubble:
             self.night_told = today
-            self.show({"head": "늦은 밤", "text": f"벌써 새벽 {datetime.datetime.now().hour}시예요. 푹 자야 내일도 잘 풀려요. 오늘은 여기까지 할까요?"})
+            self.show({"head": t("늦은 밤"), "text": t("벌써 새벽 {h}시예요. 푹 자야 내일도 잘 풀려요. 오늘은 여기까지 할까요?", h=datetime.datetime.now().hour)})
 
     def brain(self, now, dt, m):
         c = self.main
@@ -352,7 +357,7 @@ class Buddy:
             if c.chase(m.x, ty, speed * 2, dt, 30):
                 toy.carried, toy.waiting = False, True
                 toy.vy, toy.vx = 250.0, c.dir * 60
-                c.emote("또 던져줘!")
+                c.emote(t("또 던져줘!"))
                 c.state = "look"
             return
         if toy and toy.settled():
@@ -365,7 +370,7 @@ class Buddy:
                     play(self.cfg, "Bottle")
                 else:
                     toy.carried = True
-                    c.emote("잡았다!")
+                    c.emote(t("잡았다!"))
                     play(self.cfg, "Ping")
             return
         if self.follow:
@@ -378,11 +383,11 @@ class Buddy:
                 self.focus_until = 0.0
                 c.hop()
                 play(self.cfg, "Glass")
-                self.show({"head": "집중 시간 종료", "text": "25분 집중을 마쳤어요. 5분 쉬고 물 한 잔 마신 뒤 다시 시작해요."})
+                self.show({"head": t("집중 시간 종료"), "text": t("25분 집중을 마쳤어요. 5분 쉬고 물 한 잔 마신 뒤 다시 시작해요.")})
             return
         if self.cfg["activity"] and self.activity.waiting(now) and c.state != "sleep":
             c.state, c.state_until = "look", now + 2  # 손 흔들며 부르기
-            c.emote("확인 필요!", rgb("#D9534F"), 1.5)
+            c.emote(t("확인 필요!"), rgb("#D9534F"), 1.5)
             return
         if self.cfg["activity"] and self.activity.busy(now) and c.state != "sleep":
             if c.state != "work":
@@ -447,7 +452,7 @@ class Buddy:
         hh, th = head.fittingSize().height, body.fittingSize().height
         buttons = extra or []
         pills = [pill(txt, fn, ORANGE, NSColor.whiteColor()) for txt, fn in buttons]
-        pills.append(pill("닫기", self.close_bubble, rgb("#F1EDE8"), rgb("#666666")))
+        pills.append(pill(t("닫기"), self.close_bubble, rgb("#F1EDE8"), rgb("#666666")))
         tail = BubbleView.TAIL
         h = tail + pad + 26 + 10 + th + 6 + hh + pad
         v = self.world.screen_at(c.cx, c.y)
@@ -480,13 +485,13 @@ class Buddy:
             w, h = 460, 452
             win = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
                 NSMakeRect(0, 0, w, h), NSWindowStyleMaskTitled | NSWindowStyleMaskClosable, NSBackingStoreBuffered, False)
-            win.setTitle_("Claude Code 사용량")
             win.setReleasedWhenClosed_(False)
             win.setAppearance_(NSAppearance.appearanceNamed_(NSAppearanceNameAqua))
             win.setLevel_(NSFloatingWindowLevel)
             win.setContentView_(UsageView.alloc().initWithFrame_(NSMakeRect(0, 0, w, h)))
             win.center()
             self.usage_win = win
+        self.usage_win.setTitle_(t("Claude Code 사용량"))
         self.usage_win.contentView().setData_(usage.summary())  # 열 때마다 새로 셈 (새 줄만 읽어서 빠름)
         self.usage_win.makeKeyAndOrderFront_(None)
         try:
@@ -503,7 +508,7 @@ class Buddy:
         return bool(self.ask_win and self.ask_win.isVisible())
 
     def open_ask(self):
-        self.open_input("궁금한 걸 입력하고 Enter", "askSubmit:")
+        self.open_input(t("궁금한 걸 입력하고 Enter"), "askSubmit:")
         self.main.emote("?")
 
     def open_input(self, placeholder, action, secure=False):
@@ -544,7 +549,7 @@ class Buddy:
             self.ask_win = None
         if key.strip():
             ok = llm.save_api_key(self.provider(), key)
-            self.main.emote("키 저장!" if ok else "저장 실패", GRAY if not ok else ORANGE)
+            self.main.emote(t("키 저장!") if ok else t("저장 실패"), GRAY if not ok else ORANGE)
 
     def submit_ask(self, q):
         if self.ask_win:
@@ -554,11 +559,11 @@ class Buddy:
         if not q:
             return
         c = self.main
-        c.emote("음…", GRAY, 30)
+        c.emote(t("음…"), GRAY, 30)
         c.feel("work", 30)
 
         def work():
-            answer = llm.ask(self.provider(), SYSTEM, q)
+            answer = llm.ask(self.provider(), SYSTEM.format(language=i18n.LLM_NAMES[i18n.lang]), q)
             AppHelper.callAfter(self.answer, q, answer)
 
         threading.Thread(target=work, daemon=True).start()
@@ -570,4 +575,4 @@ class Buddy:
             self.show({"head": f"{llm.PROVIDERS[self.provider()][0]} · {q[:40]}", "text": answer})
         else:
             c.feel("sad", 1.5)
-            self.show({"head": f"질문 · {q[:40]}", "text": "답을 받지 못했어요. claude·codex·agy CLI에 로그인하거나 설정에서 API 키를 넣어 주세요."})
+            self.show({"head": t("질문") + f" · {q[:40]}", "text": t("답을 받지 못했어요. claude·codex·agy CLI에 로그인하거나 설정에서 API 키를 넣어 주세요.")})
