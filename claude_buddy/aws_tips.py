@@ -66,9 +66,13 @@ def api_key():
 
 
 def save_api_key(key):
-    # shortcut: 키가 security 명령 인자로 잠깐 프로세스 목록에 보임. 공유 Mac이면 Security 프레임워크 직접 호출로 교체
-    r = subprocess.run(["security", "add-generic-password", "-U", *KEYCHAIN, "-w", key.strip()], capture_output=True)
-    return r.returncode == 0
+    key = key.strip()
+    if not re.fullmatch(r"[A-Za-z0-9_\-]{20,300}", key):  # 대화형 명령 줄에 그대로 들어가므로 키 형식만 허용
+        return False
+    # 키를 명령 인자 대신 표준 입력으로 넘겨 프로세스 목록에 남지 않게 함
+    cmd = 'add-generic-password -U -s "Claude Buddy" -a anthropic-api-key -w "%s"\n' % key
+    r = subprocess.run(["security", "-i"], input=cmd, capture_output=True, text=True)
+    return r.returncode == 0 and api_key() == key
 
 
 def delete_api_key():
