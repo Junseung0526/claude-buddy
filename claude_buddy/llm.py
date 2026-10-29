@@ -44,12 +44,14 @@ def ask_cli(provider, system, question):
             cmd = [exe, "-p", question, "--model", "haiku", "--system-prompt", system, "--tools", "",
                    "--no-session-persistence", "--strict-mcp-config", "--setting-sources", ""]
         elif provider == "gpt":
+            # 팁은 웹에서 받은 글이라 읽기 전용 샌드박스(쓰기·네트워크 없음)에서만 돌림
             out = tempfile.NamedTemporaryFile(suffix=".txt", dir=WORK_DIR, delete=False).name
             cmd = [exe, "exec", "--ephemeral", "--skip-git-repo-check", "-s", "read-only",
                    "-c", 'model_reasoning_effort="low"', "-o", out, prompt]
         else:
-            # 기록을 Antigravity 로그 폴더 밖에 남겨 작업 표시에 잡히지 않음
-            cmd = [exe, "-p", prompt, "--effort", "low", "--disable-slash-commands",
+            # 출력 모드는 명령 실행 권한을 묻지 못해 자동 거부, --sandbox로 터미널도 한 번 더 막음.
+            # 기록은 Antigravity 로그 폴더 밖에 남겨 작업 표시에 잡히지 않음
+            cmd = [exe, "-p", prompt, "--sandbox", "--effort", "low", "--disable-slash-commands",
                    "--log-file", os.path.join(WORK_DIR, "agy.log")]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=WORK_DIR, env=env,
                            stdin=subprocess.DEVNULL)
