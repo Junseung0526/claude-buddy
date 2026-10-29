@@ -6,7 +6,7 @@ import objc
 from AppKit import NSApp, NSMenu, NSMenuItem
 from Foundation import NSObject
 
-from . import llm
+from . import llm, usage
 
 
 class Ctl(NSObject):
@@ -71,6 +71,14 @@ class Ctl(NSObject):
     def setSpeed_(self, s):
         self.b.set_cfg("speed", s.tag())
 
+    def usage_(self, s):
+        sessions, replies, inp, cached, out = usage.today()
+        self.b.show({"head": "오늘 Claude Code 사용량",
+                     "text": f"세션 {sessions}개 · 응답 {replies}번\n입력 {usage.fmt(inp)} 토큰 (캐시 읽기 {usage.fmt(cached)} 별도)\n출력 {usage.fmt(out)} 토큰"})
+
+    def toggleNotify_(self, s):
+        self.b.set_cfg("notify", not self.b.cfg["notify"])
+
     def toggleSound_(self, s):
         self.b.set_cfg("sound", not self.b.cfg["sound"])
 
@@ -114,6 +122,7 @@ def build_menu(b, m, status=False):
                 m.addItem_(it)
         m.addItem_(NSMenuItem.separatorItem())
     m.addItem_(item("질문하기…", "ask:"))
+    m.addItem_(item("오늘 사용량", "usage:"))
     m.addItem_(NSMenuItem.separatorItem())
     m.addItem_(item("간식 주기", "snack:"))
     m.addItem_(item("공놀이", "ball:"))
@@ -134,6 +143,7 @@ def build_menu(b, m, status=False):
         sub("크기", [item(n, "setScale:", v, c["scale"] == v) for n, v in (("작게", 4), ("보통", 6), ("크게", 8))]),
         sub("걷는 속도", [item(n, "setSpeed:", v, c["speed"] == v) for n, v in (("느리게", 35), ("보통", 55), ("빠르게", 85))]),
         item("소리", "toggleSound:", on=c["sound"]),
+        item("알림 (확인 필요·긴 작업 완료)", "toggleNotify:", on=c["notify"]),
         item("창 위로 올라가기", "toggleWindows:", on=c["windows"]),
         item("에이전트 작업 보기", "toggleActivity:", on=c["activity"]),
     ]))

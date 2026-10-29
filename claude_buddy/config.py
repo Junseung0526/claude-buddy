@@ -12,7 +12,7 @@ CODEX_SESSIONS = Path(os.environ.get("BUDDY_CODEX", Path.home() / ".codex" / "se
 # Antigravity CLI·IDE 로그 폴더
 AGY_LOGS = [Path(p) for p in os.environ.get("BUDDY_AGY", "").split(":") if p] or [
     Path.home() / ".gemini" / "antigravity-cli" / "log", Path.home() / ".gemini" / "antigravity" / "log"]
-DEFAULTS = {"scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True, "ask_provider": "claude"}
+DEFAULTS = {"scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True, "notify": True, "ask_provider": "claude"}
 SHOW_SEC = 25
 GRAVITY = 2200.0
 BUBBLE_W = 380

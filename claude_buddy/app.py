@@ -18,7 +18,7 @@ from . import llm
 from .activity import Activity, label_kind
 from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, save_settings
 from .critter import Critter
-from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, play, rgb
+from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, notify, play, rgb
 from .icon import icon_image
 from .menu import Ctl
 from .toy import TOY, Toy
@@ -51,6 +51,7 @@ class Buddy:
         self.last = now
         self.next_slow = 0.0
         self.activity = Activity()
+        self.alerted = False  # 이번 확인 필요를 이미 알렸는지
         self.active_since, self.was_idle, self.stretch_told, self.night_told = now, False, False, None
         self.status = NSStatusBar.systemStatusBar().statusItemWithLength_(-1)
         self.status.button().setImage_(icon_image(18))
@@ -290,6 +291,16 @@ class Buddy:
         if self.cfg["activity"]:
             self.activity.poll(now)
             self.chip.set(self.activity.label(now))
+            wait = self.activity.waiting(now)
+            if wait and not self.alerted:
+                play(self.cfg, "Funk")
+                notify(self.cfg, "Claude Code 확인 필요", wait)
+            self.alerted = bool(wait)
+            if self.activity.finished_after >= 60:  # 1분 넘게 걸린 작업만 알림
+                notify(self.cfg, "Claude Code 작업 완료", f"{int(self.activity.finished_after // 60)}분 걸린 작업을 마쳤어요")
+                self.activity.finished_after = 0.0
+            elif self.activity.finished_after:
+                self.activity.finished_after = 0.0
             subs = self.activity.active_subs()
             for aid, s in subs.items():
                 if aid not in self.minis and not s["finished"] and len(self.minis) < MAX_MINIS:
@@ -367,6 +378,10 @@ class Buddy:
                 c.hop()
                 play(self.cfg, "Glass")
                 self.show({"head": "집중 시간 종료", "text": "25분 집중을 마쳤어요. 5분 쉬고 물 한 잔 마신 뒤 다시 시작해요."})
+            return
+        if self.cfg["activity"] and self.activity.waiting(now) and c.state != "sleep":
+            c.state, c.state_until = "look", now + 2  # 손 흔들며 부르기
+            c.emote("확인 필요!", rgb("#D9534F"), 1.5)
             return
         if self.cfg["activity"] and self.activity.busy(now) and c.state != "sleep":
             if c.state != "work":

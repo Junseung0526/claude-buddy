@@ -13,6 +13,8 @@ from .config import AGY_LOGS, CODEX_SESSIONS, PROJECTS
 
 
 DONE_LABEL = "작업 완료"
+ASK_TOOLS = {"AskUserQuestion", "ExitPlanMode"}
+QUICK_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "WebFetch"}
 QUIET_SEC = 900  # 이보다 오래 안 바뀐 기록 파일은 무시
 
 
@@ -91,7 +93,7 @@ class Tail:
         self.path = path
         self.off = max(0, path.stat().st_size - backlog)
         self.skip_partial = self.off > 0
-        self.label, self.pending, self.last = None, set(), 0.0
+        self.label, self.pending, self.last = None, {}, 0.0  # pending: 결과를 기다리는 도구 id -> 이름
         self.ended = False  # 답변을 마쳤다는 기록(end_turn)을 봤는지
         self.since = time.time()  # 지금 라벨이 붙은 시각
 
@@ -146,13 +148,13 @@ class Tail:
             elif isinstance(content, list):
                 for b in content:
                     if b.get("type") == "tool_result":
-                        self.pending.discard(b.get("tool_use_id"))
+                        self.pending.pop(b.get("tool_use_id"), None)
                         self.label, self.last = "생각 중", ts
         elif t == "assistant" and isinstance(content, list):
             for b in content:
                 bt = b.get("type")
                 if bt == "tool_use":
-                    self.pending.add(b.get("id"))
+                    self.pending[b.get("id")] = b.get("name", "")
                     self.label = tool_label(b.get("name", ""), b.get("input") or {})
                 elif bt == "thinking":
                     self.label = "생각 중"
@@ -167,6 +169,17 @@ class Tail:
             return False
         # 도구 결과를 기다리는 중이면 오래 걸려도 일하는 중
         return bool(self.pending) and now - self.last < 600 or now - self.last < 25
+
+    def waiting(self, now):
+        """내 대답이나 권한 허락을 기다리는 중이면 그 이유. 기록에 직접 남지 않아 도구 종류와 대기 시간으로 짐작."""
+        if self.ended or now - self.last > 600:
+            return None
+        names = set(self.pending.values())
+        if names & ASK_TOOLS:
+            return "질문에 답해 주세요"
+        if names & QUICK_TOOLS and now - self.last > 8:  # 허락만 받으면 바로 끝나는 도구가 오래 걸리면 권한 대기
+            return "권한 확인"
+        return None
 
 
 def codex_label(name):
@@ -195,10 +208,10 @@ class CodexTail(Tail):
         if t != "response_item":
             return
         if kind in ("function_call", "custom_tool_call", "local_shell_call"):
-            self.pending.add(p.get("call_id"))
+            self.pending[p.get("call_id")] = p.get("name") or "shell"
             self.label = codex_label(p.get("name") or "shell")
         elif kind.endswith("_call_output"):
-            self.pending.discard(p.get("call_id"))
+            self.pending.pop(p.get("call_id"), None)
             self.label = "생각 중"
         elif kind == "reasoning":
             self.label = "생각 중"
@@ -247,6 +260,7 @@ class Activity:
         self.subs = {}  # agent id -> {"tail", "desc", "finished", "meta_mtime"}
         self.others = {}  # "codex"·"antigravity" -> {"tail", "desc", "kind", "finished"}
         self.done_label_until = 0.0
+        self.busy_since, self.finished_after = time.time(), 0.0  # 끝난 작업이 걸린 시간 (앱이 읽고 0으로)
 
     def poll(self, now):
         self.poll_others(now)
@@ -258,8 +272,12 @@ class Activity:
             self.main, self.subs = Tail(path), {}
         was_busy = self.main.busy(now)
         self.main.poll()
-        if was_busy and not self.main.busy(now):
+        is_busy = self.main.busy(now)
+        if is_busy and not was_busy:
+            self.busy_since = now
+        if was_busy and not is_busy:
             self.done_label_until = now + 8
+            self.finished_after = now - self.busy_since
         sub_dir = path.with_suffix("") / "subagents"
         for meta in sub_dir.glob("*.meta.json") if sub_dir.is_dir() else []:
             aid = meta.name.split(".")[0]
@@ -307,9 +325,14 @@ class Activity:
     def busy(self, now):
         return bool(self.main) and self.main.busy(now)
 
+    def waiting(self, now):
+        return self.main.waiting(now) if self.main else None
+
     def label(self, now):
         if not self.main:
             return None
+        if self.waiting(now):
+            return f"확인 필요 · {self.waiting(now)}"
         if self.main.busy(now):
             return self.main.text(now) if self.main.label else "생각 중"
         return DONE_LABEL if now < self.done_label_until else None

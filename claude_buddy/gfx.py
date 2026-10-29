@@ -1,5 +1,8 @@
 """색·그리기 도우미, 떠 있는 투명 창, 라벨, 효과음."""
 
+import json
+import subprocess
+
 from AppKit import (
     NSBackingStoreBuffered, NSBezierPath, NSColor, NSFont, NSMakeRect, NSSound, NSStatusWindowLevel, NSTextField, NSWindow, NSWindowCollectionBehaviorCanJoinAllSpaces, NSWindowCollectionBehaviorFullScreenAuxiliary, NSWindowCollectionBehaviorStationary, NSWindowStyleMaskBorderless,
 )
@@ -65,6 +68,13 @@ def label(text, size, color, bold=False, width=None):
     if width:
         f.setPreferredMaxLayoutWidth_(width)
     return f
+
+
+def notify(cfg, title, text):
+    """macOS 알림 센터에 알림 (osascript라 앱 서명·권한 요청 없이 됨)."""
+    if cfg["notify"]:
+        script = f"display notification {json.dumps(text, ensure_ascii=False)} with title {json.dumps(title, ensure_ascii=False)}"
+        subprocess.Popen(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def play(cfg, name):
