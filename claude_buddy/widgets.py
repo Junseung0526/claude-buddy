@@ -105,8 +105,10 @@ class Chip:
             else:
                 self.win.orderOut_(None)
         if visible:
-            w = self.win.frame().size.width
-            self.win.setFrameOrigin_((cx - w / 2, y))
+            pos = (round(cx - self.win.frame().size.width / 2), round(y))
+            if pos != getattr(self, "pos", None):  # 배터리: 움직였을 때만
+                self.pos = pos
+                self.win.setFrameOrigin_(pos)
 
     def close(self):
         self.set(None)

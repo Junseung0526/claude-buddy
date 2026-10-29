@@ -7,6 +7,7 @@ import json
 import re
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 from .config import AGY_LOGS, CODEX_SESSIONS, PROJECTS
 
@@ -36,15 +37,22 @@ def newest(paths, now):
 def tool_label(name, inp):
     base = lambda p: Path(str(p)).name or str(p)
     if name == "Read":
-        return f"읽는 중 · {base(inp.get('file_path', ''))}"
-    if name in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
+        at = f" ({inp['offset']}줄부터)" if inp.get("offset") else ""
+        return f"읽는 중 · {base(inp.get('file_path', ''))}{at}"
+    if name == "Write":
+        return f"작성 중 · {base(inp.get('file_path', ''))}"
+    if name in ("Edit", "MultiEdit", "NotebookEdit"):
         return f"수정 중 · {base(inp.get('file_path') or inp.get('notebook_path', ''))}"
     if name == "Bash":
         return "실행 중 · " + (inp.get("description") or inp.get("command", ""))[:30]
-    if name in ("Grep", "Glob"):
-        return "코드 검색 중"
-    if name in ("WebFetch", "WebSearch"):
-        return "웹 검색 중"
+    if name == "Grep":
+        return f"코드 검색 · '{str(inp.get('pattern', ''))[:20]}'"
+    if name == "Glob":
+        return f"파일 찾는 중 · {str(inp.get('pattern', ''))[:24]}"
+    if name == "WebSearch":
+        return f"웹 검색 · {str(inp.get('query', ''))[:24]}"
+    if name == "WebFetch":
+        return "웹 읽는 중 · " + (urlparse(str(inp.get("url", ""))).netloc or "페이지")
     if name in ("Agent", "Task"):
         return "서브에이전트 · " + (inp.get("description") or "호출")[:30]
     if name == "Skill":
@@ -58,6 +66,24 @@ def tool_label(name, inp):
     return f"도구 · {name}"
 
 
+# 라벨 앞부분 -> 애니메이션 종류 (Claude·Codex·Antigravity 라벨 공용)
+KINDS = (("읽는", "read"), ("작성 중", "edit"), ("수정 중", "edit"), ("파일 수정", "edit"), ("실행 중", "run"),
+         ("명령 실행", "run"), ("워크플로", "run"), ("도구", "run"), ("코드 검색", "search"), ("파일 찾는", "search"),
+         ("검색 중", "search"), ("웹", "web"), ("계획", "plan"), ("답변 작성", "answer"), ("서브에이전트", "agent"))
+
+
+def label_kind(label):
+    """작업 라벨로 어떤 동작을 보여줄지 정함. 모르는 건 생각 중."""
+    return next((k for prefix, k in KINDS if (label or "").startswith(prefix)), "think")
+
+
+def elapsed(sec):
+    """오래 걸리는 단계만 경과 시간 표시. 칩 창을 덜 새로 만들도록 5초 단위."""
+    if sec < 10:
+        return ""
+    return f" · {int(sec) // 5 * 5}초" if sec < 60 else f" · {int(sec) // 60}분"
+
+
 class Tail:
     """JSONL 파일의 새 줄만 읽어서 마지막 작업 라벨을 추적."""
 
@@ -67,6 +93,20 @@ class Tail:
         self.skip_partial = self.off > 0
         self.label, self.pending, self.last = None, set(), 0.0
         self.ended = False  # 답변을 마쳤다는 기록(end_turn)을 봤는지
+        self.since = time.time()  # 지금 라벨이 붙은 시각
+
+    @property
+    def label(self):
+        return getattr(self, "_label", None)
+
+    @label.setter
+    def label(self, text):
+        if text != getattr(self, "_label", None):
+            self._label, self.since = text, time.time()
+
+    def text(self, now):
+        """칩에 띄울 글자: 라벨 + 오래 걸리면 경과 시간."""
+        return (self.label or "준비 중") + (elapsed(now - self.since) if self.busy(now) else "")
 
     def poll(self):
         try:
@@ -271,7 +311,7 @@ class Activity:
         if not self.main:
             return None
         if self.main.busy(now):
-            return self.main.label or "생각 중"
+            return self.main.text(now) if self.main.label else "생각 중"
         return DONE_LABEL if now < self.done_label_until else None
 
     def active_subs(self):

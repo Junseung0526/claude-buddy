@@ -39,7 +39,7 @@ class CharView(NSView):
         b.menu_open = False
 
     def drawRect_(self, r):
-        draw_critter(self.c, self.c.pose())
+        draw_critter(self.c, self.c.cur_pose or self.c.pose())
 
 
 def draw_critter(c, s):
@@ -92,6 +92,8 @@ def draw_critter(c, s):
             fill(ex, ey, P, P * 1.25, EYE)
     if face == "surprised":
         fill(bx + bw / 2 - P * 0.35, by + bh * 0.2, P * 0.7, P * 0.7, EYE)
+    if s.get("prop"):
+        draw_prop(c, s["prop"], bx, by, bw, bh)
     if getattr(c, "mark", None):  # 다른 에이전트 표식 (머리 위)
         px, color = c.mark
         mp = max(1.0, P * 0.5)
@@ -113,6 +115,92 @@ def draw_critter(c, s):
         ns = NSString.stringWithString_(text)
         size = ns.sizeWithAttributes_(attrs)
         ns.drawAtPoint_withAttributes_((min(bx + bw + P * 0.5 - size.width / 2, W - size.width), by + bh + P * 0.4 + s["emoteRise"]), attrs)
+
+
+PAPER, INK, SCREEN, PROMPT = rgb("#FFFFFF"), rgb("#9AA3AD"), rgb("#2B2D31"), rgb("#4ADE80")
+
+
+def oval(x, y, w, h, color, stroke=None, width=1.0):
+    path = NSBezierPath.bezierPathWithOvalInRect_(NSMakeRect(x, y, w, h))
+    if color:
+        color.setFill()
+        path.fill()
+    if stroke:
+        stroke.setStroke()
+        path.setLineWidth_(width)
+        path.stroke()
+
+
+def draw_prop(c, prop, bx, by, bw, bh):
+    """작업 종류별 소품 애니메이션. t는 초당 8씩 오르는 프레임 번호."""
+    kind, t = prop
+    P, W, top = c.P, c.W, by + bh
+    if kind in ("read", "edit"):  # 몸 앞·손에 드는 소품
+        if kind == "read":  # 펼친 책, 가끔 책장 넘김
+            w, h, x, y = 5 * P, 2.4 * P, W / 2 - 2.5 * P, by + P * 0.2
+            fill(x, y, w, h, PAPER)
+            fill(W / 2 - P * 0.1, y, P * 0.2, h, INK)
+            for i in range(3):
+                fill(x + P * 0.4, y + h - P * (0.6 + i * 0.6), P * 1.6, P * 0.2, INK)
+                fill(W / 2 + P * 0.4, y + h - P * (0.6 + i * 0.6), P * 1.6, P * 0.2, INK)
+            flip = t % 24
+            if flip < 6:  # 넘어가는 책장
+                fill(W / 2 + P * 0.1, y + P * 0.2, P * 2.2 * (1 - flip / 6), h - P * 0.4, rgb("#EEF1F4"))
+        else:  # 오른손 연필이 오르내리며 줄을 긋는 중
+            bob = abs(math.sin(t * 0.9)) * P * 0.6
+            x, y = bx + bw + P * 0.6, by + bh * 0.25 + P + bob
+            fill(x, y, P * 0.8, P * 0.6, rgb("#3B3B3B"))         # 심
+            fill(x, y + P * 0.6, P * 0.8, P * 2.4, rgb("#F2C14E"))  # 몸통
+            fill(x, y + P * 3.0, P * 0.8, P * 0.5, rgb("#E58FA0"))  # 지우개
+            fill(x - P * 1.6, by + P * 0.2, P * (0.4 + t % 12 / 12 * 2.2), P * 0.25, INK)  # 긋는 줄
+        return
+    if getattr(c, "mark", None):  # 머리 위는 다른 에이전트 표식 자리
+        return
+    x0, y0 = W / 2 + P * 0.4, top + P * 0.7
+    if kind == "run":  # 작은 터미널: 프롬프트 + 깜빡이는 커서
+        fill(x0, y0, 6 * P, 3.4 * P, SCREEN)
+        fill(x0 + P * 0.5, y0 + P * 1.9, P * 0.5, P * 0.5, PROMPT)
+        fill(x0 + P * 1.0, y0 + P * 1.6, P * 0.5, P * 0.5, PROMPT)
+        fill(x0 + P * 0.5, y0 + P * 1.3, P * 0.5, P * 0.5, PROMPT)
+        n = t % 16
+        fill(x0 + P * 1.8, y0 + P * 1.5, P * 0.35 * min(n, 8), P * 0.4, rgb("#D1D5DB"))
+        if t // 4 % 2:
+            fill(x0 + P * (1.9 + 0.35 * min(n, 8)), y0 + P * 1.4, P * 0.5, P * 0.6, PROMPT)
+    elif kind == "search":  # 돋보기가 빙글빙글
+        cx, cy = x0 + P * 2.4 + math.cos(t * 0.45) * P, y0 + P * 2.2 + math.sin(t * 0.45) * P * 0.6
+        path = NSBezierPath.bezierPath()
+        path.moveToPoint_((cx + P * 0.8, cy - P * 0.8))
+        path.lineToPoint_((cx + P * 1.8, cy - P * 1.8))
+        rgb("#6B4F3A").setStroke()
+        path.setLineWidth_(P * 0.5)
+        path.stroke()
+        oval(cx - P * 1.2, cy - P * 1.2, P * 2.4, P * 2.4, rgb("#BFE3F5", 0.85), rgb("#555B63"), P * 0.35)
+    elif kind == "web":  # 도는 지구본
+        r, cx, cy = P * 1.6, x0 + P * 2.2, y0 + P * 2
+        oval(cx - r, cy - r, 2 * r, 2 * r, rgb("#3B82F6"))
+        for k in range(2):
+            lx = cx - r + ((t * P * 0.25 + k * r) % (2 * r))
+            fill(lx - P * 0.4, cy - P * 0.6 + k * P * 0.8, P * 0.8, P * 0.7, rgb("#22C55E"))
+        oval(cx - r, cy - r, 2 * r, 2 * r, None, rgb("#1E3A8A"), P * 0.25)
+    elif kind == "plan":  # 체크리스트에 하나씩 체크
+        fill(x0, y0, 4.4 * P, 4.6 * P, PAPER)
+        fill(x0 + P * 1.4, y0 + P * 4.3, P * 1.6, P * 0.6, rgb("#8B6B4A"))
+        done = t // 6 % 4
+        for i in range(3):
+            yy = y0 + P * (3.3 - i * 1.2)
+            fill(x0 + P * 0.5, yy, P * 0.7, P * 0.7, rgb("#2E9E5B") if i < done else INK)
+            fill(x0 + P * 1.6, yy + P * 0.2, P * 2.2, P * 0.3, INK)
+    elif kind == "answer":  # 말풍선 안에 글이 써지는 중
+        fill(x0, y0 + P * 0.6, 6 * P, 3 * P, PAPER)
+        fill(x0 + P * 0.6, y0, P * 0.8, P * 0.7, PAPER)
+        n = t % 20
+        fill(x0 + P * 0.6, y0 + P * 2.6, P * 0.5 * min(n, 9), P * 0.35, INK)
+        if n > 9:
+            fill(x0 + P * 0.6, y0 + P * 1.5, P * 0.5 * (n - 9), P * 0.35, INK)
+    else:  # 생각 중·서브에이전트: 생각 구름 점이 하나씩
+        for i in range(t // 3 % 4):
+            d = P * (0.6 + i * 0.35)
+            oval(x0 + P * (0.4 + i * 1.3), y0 + P * i * 1.1, d, d, PAPER, INK, max(1.0, P * 0.15))
 
 
 class Critter:
@@ -137,6 +225,8 @@ class Critter:
         self.face_override, self.face_until = None, 0.0
         self.drop_to = None
         self.hover = False
+        self.work_kind = None  # 일하는 중이면 보여줄 동작 (activity.label_kind)
+        self.cur_pose, self.drawn_key, self.drawn_pos = None, None, None  # 바뀐 게 없으면 다시 안 그리려고
         self.win = floating_window(NSMakeRect(self.x, self.y, self.W, self.H))
         self.view = CharView.alloc().initWithCritter_(self)
         self.win.setContentView_(self.view)
@@ -148,6 +238,7 @@ class Critter:
 
     def set_scale(self, p):
         self.P, self.W, self.H = p, 16 * p, 13 * p
+        self.drawn_key = None
         self.win.setContentSize_((self.W, self.H))
         self.view.setFrame_(NSMakeRect(0, 0, self.W, self.H))
 
@@ -241,8 +332,16 @@ class Critter:
         return True
 
     def render(self):
-        self.win.setFrameOrigin_((self.x, self.y))
-        self.view.setNeedsDisplay_(True)
+        # 배터리: 창 이동·다시 그리기는 화면에서 달라질 때만 (0.5pt 단위)
+        pos = (round(self.x), round(self.y))
+        if pos != self.drawn_pos:
+            self.drawn_pos = pos
+            self.win.setFrameOrigin_(pos)
+        self.cur_pose = self.pose()
+        key = tuple(round(v * 2) if isinstance(v, float) else v for v in self.cur_pose.values())
+        if key != self.drawn_key:
+            self.drawn_key = key
+            self.view.setNeedsDisplay_(True)
 
     def pose(self):
         now = time.time()
@@ -317,5 +416,6 @@ class Critter:
             "lookX": self.sm_lx, "lookY": self.sm_ly, "tilt": self.sm_tilt,
             "shadow": not self.airborne() and st != "held",
             "face": face, "emote": emote,
-            "emoteRise": (now - self.emote_start) * 6 if now < self.emote_until else math.sin(now * 2) * 2,
+            "emoteRise": ((now - self.emote_start) * 6 if now < self.emote_until else math.sin(now * 2) * 2) if emote else 0.0,
+            "prop": (self.work_kind, int(now * 8)) if st == "work" and self.work_kind else None,
         }

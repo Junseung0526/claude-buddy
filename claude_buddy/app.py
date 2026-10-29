@@ -15,7 +15,7 @@ from Quartz import (
 )
 
 from . import llm
-from .activity import Activity
+from .activity import Activity, label_kind
 from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, aws_tips, save_settings
 from .critter import Critter
 from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, play, rgb
@@ -58,8 +58,26 @@ class Buddy:
         menu = NSMenu.alloc().init()
         menu.setDelegate_(self.ctl)
         self.status.setMenu_(menu)
-        timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(1 / 60, self.ctl, "tick:", None, True)
-        NSRunLoop.currentRunLoop().addTimer_forMode_(timer, NSRunLoopCommonModes)
+        self.timer, self.fps = None, 0
+        self.set_rate(60)
+
+    def set_rate(self, fps):
+        """배터리: 움직일 때만 60fps, 가만히 있으면 20fps, 숨었으면 2fps."""
+        if fps == self.fps:
+            return
+        if self.timer:
+            self.timer.invalidate()
+        self.fps = fps
+        self.timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(1 / fps, self.ctl, "tick:", None, True)
+        self.timer.setTolerance_(0.2 / fps)  # macOS가 깨우기를 묶어서 처리하도록
+        NSRunLoop.currentRunLoop().addTimer_forMode_(self.timer, NSRunLoopCommonModes)
+
+    def lively(self):
+        """빠른 움직임(걷기·점프·들기·장난감)이 있어 60fps가 필요한지."""
+        calm = ("rest", "sleep", "work", "focus", "look")
+        crits = [self.main, *self.minis.values()]
+        return bool(self.grab or self.toy) or any(
+            k.state not in calm or k.airborne() or k.squash_v > 0 or getattr(k, "done_at", None) for k in crits)
 
     # ----- 설정
     def set_cfg(self, key, val):
@@ -193,7 +211,7 @@ class Buddy:
         now = time.time()
         dt = min(now - self.last, 0.05)
         self.last = now
-        self.world.refresh(now)
+        self.world.refresh(now, 0.4 if self.fps == 60 else 2.0)  # 배터리: 가만히 있을 땐 창 위치를 드물게
         if now >= self.next_slow:
             self.next_slow = now + 1.0
             self.slow_tick(now)
@@ -208,6 +226,7 @@ class Buddy:
             for ch in [self.chip, *self.mini_chips.values()]:
                 ch.shown = False
         if self.hidden:
+            self.set_rate(2)
             return
 
         m = NSEvent.mouseLocation()
@@ -243,7 +262,8 @@ class Buddy:
             s = self.activity.sub(aid)
             chip = self.mini_chips.get(aid)
             if chip:
-                chip.set((s["tail"].label or "준비 중") if s and not mc.done_at else None)
+                chip.set(s["tail"].text(now) if s and not mc.done_at else None)
+                mc.work_kind = label_kind(s["tail"].label) if s and not mc.done_at else None
                 chip.place(mc.cx, mc.y + mc.H, mc.state != "held")
 
         if self.toy:
@@ -257,6 +277,8 @@ class Buddy:
         if aws_tips and not self.bubble and not self.menu_open and not self.asking() and now > self.next_tip_at and c.state in ("walk", "rest", "look"):
             self.show()
         self.chip.place(c.cx, c.y + c.H, not self.bubble and c.state != "held")
+        c.work_kind = label_kind(self.activity.main.label) if c.state == "work" and self.activity.main else None
+        self.set_rate(60 if self.lively() else 20)
 
     def all_windows(self):
         ws = [self.main.win] + [m.win for m in self.minis.values()]

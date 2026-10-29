@@ -119,8 +119,10 @@ class Toy:
             self.spin -= self.vx * dt * 3
 
     def render(self):
-        self.win.setFrameOrigin_((self.x, self.y))
-        self.view.setNeedsDisplay_(True)
+        self.win.setFrameOrigin_((round(self.x), round(self.y)))
+        if round(self.spin) != getattr(self, "drawn_spin", None):  # 배터리: 돌 때만 다시 그림
+            self.drawn_spin = round(self.spin)
+            self.view.setNeedsDisplay_(True)
 
     def close(self):
         self.win.orderOut_(None)

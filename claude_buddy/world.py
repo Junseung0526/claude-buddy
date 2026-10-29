@@ -15,10 +15,10 @@ class World:
         self.plats, self.next_refresh = [], 0.0
         self.refresh(0)
 
-    def refresh(self, now):
+    def refresh(self, now, every=0.4):
         if now < self.next_refresh:
             return
-        self.next_refresh = now + 0.4
+        self.next_refresh = now + every
         screens = NSScreen.screens()
         self.primary_h = screens[0].frame().size.height
         self.vfs = [s.visibleFrame() for s in screens]
