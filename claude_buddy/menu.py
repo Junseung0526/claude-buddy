@@ -6,7 +6,7 @@ import objc
 from AppKit import NSApp, NSMenu, NSMenuItem
 from Foundation import NSObject
 
-from . import llm, usage
+from . import llm
 
 
 class Ctl(NSObject):
@@ -72,9 +72,7 @@ class Ctl(NSObject):
         self.b.set_cfg("speed", s.tag())
 
     def usage_(self, s):
-        sessions, replies, inp, cached, out = usage.today()
-        self.b.show({"head": "오늘 Claude Code 사용량",
-                     "text": f"세션 {sessions}개 · 응답 {replies}번\n입력 {usage.fmt(inp)} 토큰 (캐시 읽기 {usage.fmt(cached)} 별도)\n출력 {usage.fmt(out)} 토큰"})
+        self.b.open_usage()
 
     def toggleNotify_(self, s):
         self.b.set_cfg("notify", not self.b.cfg["notify"])
@@ -122,7 +120,7 @@ def build_menu(b, m, status=False):
                 m.addItem_(it)
         m.addItem_(NSMenuItem.separatorItem())
     m.addItem_(item("질문하기…", "ask:"))
-    m.addItem_(item("오늘 사용량", "usage:"))
+    m.addItem_(item("사용량 보기…", "usage:"))
     m.addItem_(NSMenuItem.separatorItem())
     m.addItem_(item("간식 주기", "snack:"))
     m.addItem_(item("공놀이", "ball:"))

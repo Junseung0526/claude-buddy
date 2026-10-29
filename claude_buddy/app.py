@@ -6,7 +6,8 @@ import threading
 import time
 
 from AppKit import (
-    NSApp, NSAppearance, NSAppearanceNameAqua, NSColor, NSEvent, NSFont, NSMakeRect, NSMenu, NSSecureTextField, NSStatusBar, NSTextField,
+    NSApp, NSAppearance, NSAppearanceNameAqua, NSBackingStoreBuffered, NSColor, NSEvent, NSFloatingWindowLevel, NSFont, NSMakeRect,
+    NSMenu, NSSecureTextField, NSStatusBar, NSTextField, NSWindow, NSWindowStyleMaskClosable, NSWindowStyleMaskTitled,
 )
 from Foundation import NSRunLoop, NSRunLoopCommonModes, NSTimer
 from PyObjCTools import AppHelper
@@ -14,7 +15,7 @@ from Quartz import (
     CGEventSourceSecondsSinceLastEventType, kCGAnyInputEventType, kCGEventSourceStateHIDSystemState,
 )
 
-from . import llm
+from . import llm, usage
 from .activity import Activity, label_kind
 from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, save_settings
 from .critter import Critter
@@ -22,7 +23,7 @@ from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANG
 from .icon import icon_image
 from .menu import Ctl
 from .toy import TOY, Toy
-from .widgets import BubbleView, Chip, pill
+from .widgets import BubbleView, Chip, UsageView, pill
 from .world import World
 
 
@@ -472,6 +473,26 @@ class Buddy:
         win.animator().setAlphaValue_(1.0)
         self.bubble = win
         self.bubble_until = time.time() + SHOW_SEC
+
+    # ----- 사용량 창
+    def open_usage(self):
+        if not getattr(self, "usage_win", None):
+            w, h = 460, 452
+            win = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
+                NSMakeRect(0, 0, w, h), NSWindowStyleMaskTitled | NSWindowStyleMaskClosable, NSBackingStoreBuffered, False)
+            win.setTitle_("Claude Code 사용량")
+            win.setReleasedWhenClosed_(False)
+            win.setAppearance_(NSAppearance.appearanceNamed_(NSAppearanceNameAqua))
+            win.setLevel_(NSFloatingWindowLevel)
+            win.setContentView_(UsageView.alloc().initWithFrame_(NSMakeRect(0, 0, w, h)))
+            win.center()
+            self.usage_win = win
+        self.usage_win.contentView().setData_(usage.summary())  # 열 때마다 새로 셈 (새 줄만 읽어서 빠름)
+        self.usage_win.makeKeyAndOrderFront_(None)
+        try:
+            NSApp().activate()
+        except AttributeError:
+            NSApp().activateIgnoringOtherApps_(True)
 
     # ----- 물어보기
     def provider(self):
