@@ -1,0 +1,57 @@
+# Pushing a tag like v1.6.0 builds the app and publishes a GitHub release.
+# Release notes come from that version's section in CHANGELOG.md.
+# Running it by hand (Actions → Release → Run workflow) only builds and uploads the zip as an artifact.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest  # Apple Silicon (arm64)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then VERSION="${GITHUB_REF_NAME#v}"; else VERSION=0.0.0; fi
+          VERSION="$VERSION" ./build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Claude-Buddy-macOS-arm64
+          path: dist/Claude-Buddy-macOS-arm64.zip
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          awk -v v="$V" '/^## \[/{on = index($0, "[" v "]") > 0; next} /^\[[0-9]/{on = 0} on' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section for [$V]"
+            exit 1
+          fi
+          cat >> notes.md <<'EOF'
+
+          ## Install
+          1. Download `Claude-Buddy-macOS-arm64.zip`, unzip it and move `Claude Buddy.app` to Applications (replace the old one if you have it).
+          2. If macOS blocks the first launch, click **Open Anyway** in System Settings → Privacy & Security, or run:
+             ```
+             xattr -dr com.apple.quarantine "/Applications/Claude Buddy.app"
+             ```
+
+          Apple Silicon (M1 or later) only. No Python installation needed.
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/Claude-Buddy-macOS-arm64.zip \
+            --title "Claude Buddy $V" --notes-file notes.md
