@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""화면을 돌아다니며 AWS 시험 팁을 알려주고, Claude Code 작업 상황을 보여주는 Claude 캐릭터 (macOS).
+"""화면을 돌아다니며 Claude Code 작업 상황을 보여주는 Claude 캐릭터 데스크톱 펫 (macOS).
+aws_tips.py가 있으면 AWS 시험 팁·물어보기 기능이 켜지고, 지우면 순수 펫으로 동작함.
 
 설치·실행: ./make_app.sh 한 번 → "Claude 버디.app" 더블클릭
 직접 실행: .venv/bin/python buddy.py
@@ -8,7 +9,6 @@
   클릭 다음 팁 · 더블클릭 쓰다듬기 · 드래그 들기/던지기 · 커서 올리기 손 흔들기
   우클릭(또는 메뉴바 ✳︎) 물어보기 / 간식 / 공놀이 / 따라오기 / 집중 타이머 / 재우기 / 설정
   Claude Code가 일하면 머리 위에 지금 하는 작업이 뜨고, 서브에이전트마다 작은 캐릭터가 나와서 같이 일함
-팁 출처: https://learningmate-lab.github.io/cloud-cbt/ (개념 정리 팁 + 문제 해설)
 """
 import argparse
 import datetime
@@ -16,10 +16,8 @@ import json
 import math
 import os
 import random
-import re
 import threading
 import time
-import urllib.request
 from pathlib import Path
 
 import objc
@@ -39,18 +37,19 @@ from Quartz import (
     kCGWindowListOptionOnScreenOnly,
 )
 
+try:  # AWS 시험 팁 (선택 기능): aws_tips.py를 지우면 순수 펫
+    import aws_tips
+except ImportError:
+    aws_tips = None
+
 HERE = Path(__file__).resolve().parent
-SRC_URL = "https://learningmate-lab.github.io/cloud-cbt/"
-TIPS_FILE = HERE / "tips.json"
 SETTINGS_FILE = HERE / "settings.json"
 PROJECTS = Path(os.environ.get("BUDDY_PROJECTS", Path.home() / ".claude" / "projects"))
-MODULES = {2: "글로벌 인프라", 3: "IAM", 4: "S3", 5: "EC2", 6: "데이터베이스", 7: "VPC"}
 DEFAULTS = {"interval": 60, "scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True}
 SHOW_SEC = 25
 GRAVITY = 2200.0
 BUBBLE_W = 380
 MAX_MINIS = 6
-MODEL = "claude-opus-5-5"
 
 
 # ---------------------------------------------------------------- 데이터·설정
@@ -63,62 +62,6 @@ def load_settings():
 
 def save_settings(cfg):
     SETTINGS_FILE.write_text(json.dumps(cfg, ensure_ascii=False, indent=1))
-
-
-def site_json(html, name):
-    start = html.index(f"window.{name} = ") + len(f"window.{name} = ")
-    return json.JSONDecoder().raw_decode(html[start:])[0]
-
-
-def load_tips():
-    if not TIPS_FILE.exists():
-        html = urllib.request.urlopen(SRC_URL, timeout=20).read().decode("utf-8")
-        plain = lambda s: re.sub(r"\*\*|`", "", s).strip()
-        tips = [{"module": m["module"], "head": f"모듈 {m['module']} · {s['title']}", "text": plain(s["tip"])}
-                for m in site_json(html, "CLOUD_CONCEPTS") for s in m["sections"] if s.get("tip")]
-        tips += [{"module": q["module"], "head": f"모듈 {q['module']} · {MODULES.get(q['module'], '')} 시험 포인트",
-                  "text": plain(q["explain"])} for q in site_json(html, "CLOUD_QS") if q.get("explain")]
-        TIPS_FILE.write_text(json.dumps(tips, ensure_ascii=False, indent=1))
-    tips = json.loads(TIPS_FILE.read_text())
-    assert tips and all({"module", "head", "text"} <= t.keys() for t in tips), "tips.json 형식 오류: 파일을 지우고 다시 실행"
-    return tips
-
-
-JOSA = re.compile(r"(에서는|에서|으로|이란|이야|이에요|인가요|은|는|이|가|을|를|의|에|로|와|과|도|만|란|야|요|뭐야|뭔가요|뭐지)$")
-
-
-def search_tips(tips, query, n=3):
-    words = [JOSA.sub("", w.lower()) for w in re.findall(r"[A-Za-z0-9]+|[가-힣]+", query)]
-    words = [w for w in words if len(w) >= 2 and w not in ("뭐야", "알려줘", "차이", "설명")] or words
-    scored = []
-    for t in tips:
-        head, text = t["head"].lower(), t["text"].lower()
-        s = sum((head.count(w) * 3 + text.count(w)) * len(w) for w in words)
-        if s:
-            scored.append((s, t))
-    scored.sort(key=lambda x: -x[0])
-    return [t for _, t in scored[:n]]
-
-
-def ask_claude(question, context_tips):
-    """Claude에게 묻기. 인증 정보가 없거나 실패하면 None (로컬 검색 결과만 보여줌)."""
-    try:
-        import anthropic
-        client = anthropic.Anthropic()
-        notes = "\n".join(f"- [{t['head']}] {t['text']}" for t in context_tips)
-        resp = client.beta.messages.create(
-            model=MODEL, max_tokens=2000,
-            betas=["server-side-fallback-2026-07-01"], fallbacks="default",
-            output_config={"effort": "low"},
-            system="당신은 AWS 자격증 공부를 돕는 데스크톱 펫입니다. 한국어로 3문장 이내, 시험 포인트 위주로 답하세요. "
-                   "아래 학습 노트가 관련 있으면 그 내용을 우선 근거로 쓰세요.\n\n학습 노트:\n" + (notes or "(없음)"),
-            messages=[{"role": "user", "content": question}],
-        )
-        if resp.stop_reason == "refusal":
-            return None
-        return "".join(b.text for b in resp.content if b.type == "text").strip() or None
-    except Exception:  # noqa: BLE001 - 키 없음·네트워크 등 어떤 실패든 로컬 답으로 대체
-        return None
 
 
 # ---------------------------------------------------------------- Claude Code 작업 감시
@@ -1064,7 +1007,7 @@ class Buddy:
         self.grab = None
         if not moved:
             if c is self.main:
-                self.next_tip()
+                self.next_tip() if aws_tips else self.pet(c)
             else:
                 self.show_mini_info(c)
             return
@@ -1113,11 +1056,12 @@ class Buddy:
                     it.setEnabled_(False)
                     m.addItem_(it)
             m.addItem_(NSMenuItem.separatorItem())
-        m.addItem_(item("💡 다음 팁", "nextTip:"))
-        m.addItem_(item("💬 물어보기…", "ask:"))
-        m.addItem_(sub("📚 모듈별 팁", [item("전체", "setModule:", 0, self.module is None)]
-                       + [item(f"모듈 {k} · {n}", "setModule:", k, self.module == k) for k, n in MODULES.items()]))
-        m.addItem_(NSMenuItem.separatorItem())
+        if aws_tips:
+            m.addItem_(item("💡 다음 팁", "nextTip:"))
+            m.addItem_(item("💬 물어보기…", "ask:"))
+            m.addItem_(sub("📚 모듈별 팁", [item("전체", "setModule:", 0, self.module is None)]
+                           + [item(f"모듈 {k} · {n}", "setModule:", k, self.module == k) for k, n in aws_tips.MODULES.items()]))
+            m.addItem_(NSMenuItem.separatorItem())
         m.addItem_(item("🍪 간식 주기", "snack:"))
         m.addItem_(item("⚾ 공놀이", "ball:"))
         m.addItem_(item("🐾 커서 따라오기", "follow:", on=self.follow))
@@ -1125,8 +1069,9 @@ class Buddy:
         m.addItem_(item("💤 30분 조용히 (재우기)", "snooze:"))
         m.addItem_(NSMenuItem.separatorItem())
         c = self.cfg
-        m.addItem_(sub("⚙️ 설정", [
-            sub("팁 간격", [item(n, "setInterval:", v, c["interval"] == v) for n, v in (("30초", 30), ("1분", 60), ("3분", 180), ("5분", 300), ("10분", 600))]),
+        tip_gap = [sub("팁 간격", [item(n, "setInterval:", v, c["interval"] == v) for n, v in
+                               (("30초", 30), ("1분", 60), ("3분", 180), ("5분", 300), ("10분", 600))])] if aws_tips else []
+        m.addItem_(sub("⚙️ 설정", tip_gap + [
             sub("크기", [item(n, "setScale:", v, c["scale"] == v) for n, v in (("작게", 4), ("보통", 6), ("크게", 8))]),
             sub("걷는 속도", [item(n, "setSpeed:", v, c["speed"] == v) for n, v in (("느리게", 35), ("보통", 55), ("빠르게", 85))]),
             item("소리", "toggleSound:", on=c["sound"]),
@@ -1255,7 +1200,7 @@ class Buddy:
 
         if self.bubble and now > self.bubble_until:
             self.close_bubble()
-        if not self.bubble and now > self.next_tip_at and c.state in ("walk", "rest", "look"):
+        if aws_tips and not self.bubble and now > self.next_tip_at and c.state in ("walk", "rest", "look"):
             self.show()
         self.chip.place(c.cx, c.y + c.H, not self.bubble and c.state != "held")
 
@@ -1496,13 +1441,13 @@ class Buddy:
         q = q.strip()
         if not q:
             return
-        found = search_tips(self.tips, q, 5)
+        found = aws_tips.search_tips(self.tips, q, 5)
         c = self.main
         c.emote("음…", GRAY, 30)
         c.feel("work", 30)
 
         def work():
-            answer = ask_claude(q, found)
+            answer = aws_tips.ask_claude(q, found)
             AppHelper.callAfter(self.answer, q, found, answer)
 
         threading.Thread(target=work, daemon=True).start()
@@ -1566,7 +1511,7 @@ def main():
     if args.icon:
         write_icon(args.icon)
         return
-    buddy = Buddy(load_tips(), load_settings())  # noqa: F841 (앱이 도는 동안 참조 유지)
+    buddy = Buddy(aws_tips.load_tips() if aws_tips else [], load_settings())  # noqa: F841 (앱이 도는 동안 참조 유지)
     app.run()
 
 
