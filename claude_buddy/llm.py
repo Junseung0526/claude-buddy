@@ -44,7 +44,7 @@ def ask_cli(provider, system, question):
             cmd = [exe, "-p", question, "--model", "haiku", "--system-prompt", system, "--tools", "",
                    "--no-session-persistence", "--strict-mcp-config", "--setting-sources", ""]
         elif provider == "gpt":
-            # 팁은 웹에서 받은 글이라 읽기 전용 샌드박스(쓰기·네트워크 없음)에서만 돌림
+            # 질문 내용으로 아무것도 고치지 못하게 읽기 전용 샌드박스(쓰기·네트워크 없음)에서만 돌림
             out = tempfile.NamedTemporaryFile(suffix=".txt", dir=WORK_DIR, delete=False).name
             cmd = [exe, "exec", "--ephemeral", "--skip-git-repo-check", "-s", "read-only",
                    "-c", 'model_reasoning_effort="low"', "-o", out, prompt]

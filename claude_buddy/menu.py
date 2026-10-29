@@ -7,7 +7,6 @@ from AppKit import NSApp, NSMenu, NSMenuItem
 from Foundation import NSObject
 
 from . import llm
-from .config import aws_tips
 
 
 class Ctl(NSObject):
@@ -26,9 +25,6 @@ class Ctl(NSObject):
     def menuNeedsUpdate_(self, menu):
         menu.removeAllItems()
         build_menu(self.b, menu, status=True)
-
-    def nextTip_(self, s):
-        self.b.next_tip()
 
     def ask_(self, s):
         self.b.open_ask()
@@ -66,16 +62,8 @@ class Ctl(NSObject):
     def snooze_(self, s):
         self.b.snooze()
 
-    def setModule_(self, s):
-        self.b.module = s.tag() or None
-        self.b.main.emote("OK!")
-        self.b.next_tip()
-
     def toggleHidden_(self, s):
         self.b.manual_hidden = not self.b.manual_hidden
-
-    def setInterval_(self, s):
-        self.b.set_cfg("interval", s.tag())
 
     def setScale_(self, s):
         self.b.set_cfg("scale", s.tag())
@@ -125,12 +113,8 @@ def build_menu(b, m, status=False):
                 it.setEnabled_(False)
                 m.addItem_(it)
         m.addItem_(NSMenuItem.separatorItem())
-    if aws_tips:
-        m.addItem_(item("다음 팁", "nextTip:"))
-        m.addItem_(item("질문하기…", "ask:"))
-        m.addItem_(sub("모듈별 팁", [item("전체", "setModule:", 0, b.module is None)]
-                       + [item(f"모듈 {k} · {n}", "setModule:", k, b.module == k) for k, n in aws_tips.MODULES.items()]))
-        m.addItem_(NSMenuItem.separatorItem())
+    m.addItem_(item("질문하기…", "ask:"))
+    m.addItem_(NSMenuItem.separatorItem())
     m.addItem_(item("간식 주기", "snack:"))
     m.addItem_(item("공놀이", "ball:"))
     m.addItem_(item("커서 따라오기", "follow:", on=b.follow))
@@ -138,17 +122,15 @@ def build_menu(b, m, status=False):
     m.addItem_(item("30분 동안 쉬기", "snooze:"))
     m.addItem_(NSMenuItem.separatorItem())
     c = b.cfg
-    tip_gap = [sub("팁 간격", [item(n, "setInterval:", v, c["interval"] == v) for n, v in
-                           (("1분", 60), ("3분", 180), ("5분", 300), ("10분", 600), ("30분", 1800))])] if aws_tips else []
-    if aws_tips:  # 질문하기 답변 모델과 그 API 키 (키체인에 저장)
-        prov = b.provider()
-        name = llm.PROVIDERS[prov][0]
-        has_key = llm.api_key(prov) is not None
-        tip_gap += [sub("질문 답변 모델", [item(f"{v[0]} ({v[1]})", "setProvider:", i, k == prov)
-                                       for i, (k, v) in enumerate(llm.PROVIDERS.items())]),
-                    item(f"{name} API 키 변경…" if has_key else f"{name} API 키 설정…", "setKey:")]
-        tip_gap += [item(f"{name} API 키 삭제", "deleteKey:")] if has_key else []
-    m.addItem_(sub("설정", tip_gap + [
+    # 질문하기 답변 모델과 그 API 키 (CLI가 없을 때만 씀, 키체인에 저장)
+    prov = b.provider()
+    name = llm.PROVIDERS[prov][0]
+    has_key = llm.api_key(prov) is not None
+    ask_items = [sub("질문 답변 모델", [item(f"{v[0]} ({v[1]})", "setProvider:", i, k == prov)
+                                   for i, (k, v) in enumerate(llm.PROVIDERS.items())]),
+                item(f"{name} API 키 변경…" if has_key else f"{name} API 키 설정…", "setKey:")]
+    ask_items += [item(f"{name} API 키 삭제", "deleteKey:")] if has_key else []
+    m.addItem_(sub("설정", ask_items + [
         sub("크기", [item(n, "setScale:", v, c["scale"] == v) for n, v in (("작게", 4), ("보통", 6), ("크게", 8))]),
         sub("걷는 속도", [item(n, "setSpeed:", v, c["speed"] == v) for n, v in (("느리게", 35), ("보통", 55), ("빠르게", 85))]),
         item("소리", "toggleSound:", on=c["sound"]),

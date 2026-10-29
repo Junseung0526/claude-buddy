@@ -16,7 +16,7 @@ from Quartz import (
 
 from . import llm
 from .activity import Activity, label_kind
-from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, aws_tips, save_settings
+from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, save_settings
 from .critter import Critter
 from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, play, rgb
 from .icon import icon_image
@@ -26,12 +26,12 @@ from .widgets import BubbleView, Chip, pill
 from .world import World
 
 
+SYSTEM = "당신은 사용자 화면에 사는 데스크톱 펫이자 도우미입니다. 한국어로 3문장 이내로 짧고 정확하게 답하세요."
+
+
 class Buddy:
-    def __init__(self, tips, cfg):
-        self.tips, self.cfg = tips, cfg
-        random.shuffle(self.tips)
-        self.idx = 0
-        self.module = None
+    def __init__(self, cfg):
+        self.cfg = cfg
         self.ctl = Ctl.alloc().initWithBuddy_(self)
         self.world = World(cfg)
         v0 = self.world.vfs[0]
@@ -48,7 +48,6 @@ class Buddy:
         self.manual_hidden, self.hidden, self.fullscreen = False, False, False
         self.hover_since, self.hover_petted = 0.0, False
         now = time.time()
-        self.next_tip_at = now + 5
         self.last = now
         self.next_slow = 0.0
         self.activity = Activity()
@@ -87,8 +86,6 @@ class Buddy:
             self.main.set_scale(val)
             for c in self.minis.values():
                 c.set_scale(max(3, round(val * (0.7 if c.mark else 0.55))))
-        if key == "interval":
-            self.next_tip_at = min(self.next_tip_at, time.time() + val)
         if key == "activity" and not val:
             self.chip.close()
             for aid in list(self.minis):
@@ -121,7 +118,7 @@ class Buddy:
         self.grab = (c, off, hist, True)
         if c.state != "held":
             if c is self.main:
-                self.close_bubble(reschedule=False)
+                self.close_bubble()
             c.state = "held"
             c.emote("!")
             play(self.cfg, "Pop")
@@ -134,7 +131,7 @@ class Buddy:
         self.grab = None
         if not moved:
             if c is self.main:
-                self.next_tip() if aws_tips else self.pet(c)
+                self.pet(c)
             else:
                 self.show_mini_info(c)
             return
@@ -169,13 +166,12 @@ class Buddy:
             c.state, c.state_until = "rest", time.time() + 1
             c.emote("취소!", GRAY)
         else:
-            self.close_bubble(reschedule=False)
+            self.close_bubble()
             self.focus_until = time.time() + 25 * 60
             c.emote("집중!")
 
     def snooze(self):
-        self.close_bubble(reschedule=False)
-        self.next_tip_at = time.time() + 30 * 60
+        self.close_bubble()
         self.main.state, self.main.state_until = "sleep", time.time() + 30 * 60
 
     # ----- 미니 (서브에이전트)
@@ -203,7 +199,7 @@ class Buddy:
         aid = next((a for a, v in self.minis.items() if v is c), None)
         s = self.activity.sub(aid)
         if s:
-            self.show({"module": 0, "head": s["desc"] if s.get("kind") else f"서브에이전트 · {s['desc']}",
+            self.show({"head": s["desc"] if s.get("kind") else f"서브에이전트 · {s['desc']}",
                        "text": f"지금: {s['tail'].label or '준비 중'}"}, anchor=c)
 
     # ----- 매 프레임
@@ -274,8 +270,6 @@ class Buddy:
 
         if self.bubble and now > self.bubble_until:
             self.close_bubble()
-        if aws_tips and not self.bubble and not self.menu_open and not self.asking() and now > self.next_tip_at and c.state in ("walk", "rest", "look"):
-            self.show()
         self.chip.place(c.cx, c.y + c.H, not self.bubble and c.state != "held")
         c.work_kind = label_kind(self.activity.main.label) if c.state == "work" and self.activity.main else None
         self.set_rate(60 if self.lively() else 20)
@@ -323,11 +317,11 @@ class Buddy:
             c.emote("어서와요!")
         if now - self.active_since > 50 * 60 and not self.bubble and not self.focus_until:
             self.active_since = now
-            self.show({"module": 0, "head": "쉬는 시간", "text": "50분째 쉬지 않고 달리는 중이에요! 일어나서 기지개 한 번 켜고 물 한 잔 마셔요."})
+            self.show({"head": "쉬는 시간", "text": "50분째 쉬지 않고 달리는 중이에요! 일어나서 기지개 한 번 켜고 물 한 잔 마셔요."})
         today = datetime.date.today()
         if self.night() and self.night_told != today and not self.bubble:
             self.night_told = today
-            self.show({"module": 0, "head": "늦은 밤", "text": f"벌써 새벽 {datetime.datetime.now().hour}시예요. 잠도 공부예요. 오늘은 여기까지 할까요?"})
+            self.show({"head": "늦은 밤", "text": f"벌써 새벽 {datetime.datetime.now().hour}시예요. 푹 자야 내일도 잘 풀려요. 오늘은 여기까지 할까요?"})
 
     def brain(self, now, dt, m):
         c = self.main
@@ -372,7 +366,7 @@ class Buddy:
                 self.focus_until = 0.0
                 c.hop()
                 play(self.cfg, "Glass")
-                self.show({"module": 0, "head": "집중 시간 종료", "text": "25분 집중을 마쳤어요. 5분 쉬고 물 한 잔 마신 뒤 다시 시작해요."})
+                self.show({"head": "집중 시간 종료", "text": "25분 집중을 마쳤어요. 5분 쉬고 물 한 잔 마신 뒤 다시 시작해요."})
             return
         if self.cfg["activity"] and self.activity.busy(now) and c.state != "sleep":
             if c.state != "work":
@@ -418,31 +412,16 @@ class Buddy:
             mc.dir = 1 if main.cx > mc.cx else -1
 
     # ----- 말풍선
-    def close_bubble(self, reschedule=True):
+    def close_bubble(self):
         if self.bubble:
             self.bubble.orderOut_(None)
             self.bubble = None
-        if reschedule:
-            self.next_tip_at = time.time() + self.cfg["interval"]
 
-    def next_tip(self):
-        self.close_bubble(reschedule=False)
-        if self.main.state == "sleep":
-            self.main.state = "rest"
-        self.show()
-
-    def show(self, t=None, anchor=None, extra=None):
-        """t가 없으면 다음 팁. extra=[(버튼 글자, 함수)]로 버튼 교체."""
-        self.close_bubble(reschedule=False)
+    def show(self, t, anchor=None, extra=None):
+        """t={"head", "text"} 말풍선. extra=[(버튼 글자, 함수)]는 닫기 앞에 붙는 버튼."""
+        self.close_bubble()
         c = anchor or self.main
-        if t is None:
-            pool = [x for x in self.tips if self.module in (None, x["module"])]
-            if not pool:  # 팁을 못 받아 왔으면 띄울 게 없음
-                self.next_tip_at = time.time() + self.cfg["interval"]
-                return
-            t = pool[self.idx % len(pool)]
-            self.idx += 1
-            play(self.cfg, "Pop")
+        play(self.cfg, "Pop")
         if c is self.main and not c.airborne() and c.state in ("walk", "rest", "look", "work", "fetch"):
             c.hop(300, "happy", 0.6)
         c.emote("!")
@@ -450,7 +429,7 @@ class Buddy:
         head = label(t["head"], 12, ORANGE, bold=True, width=inner)
         body = label(t["text"], 14, rgb("#222222"), width=inner)
         hh, th = head.fittingSize().height, body.fittingSize().height
-        buttons = extra or [("다음 팁", self.next_tip)]
+        buttons = extra or []
         pills = [pill(txt, fn, ORANGE, NSColor.whiteColor()) for txt, fn in buttons]
         pills.append(pill("닫기", self.close_bubble, rgb("#F1EDE8"), rgb("#666666")))
         tail = BubbleView.TAIL
@@ -488,11 +467,11 @@ class Buddy:
         return bool(self.ask_win and self.ask_win.isVisible())
 
     def open_ask(self):
-        self.open_input("AWS 관련 질문을 입력하고 Enter (예: S3 Glacier 차이)", "askSubmit:")
+        self.open_input("궁금한 걸 입력하고 Enter", "askSubmit:")
         self.main.emote("?")
 
     def open_input(self, placeholder, action, secure=False):
-        self.close_bubble(reschedule=False)
+        self.close_bubble()
         if self.ask_win:
             self.ask_win.orderOut_(None)
         c = self.main
@@ -538,31 +517,21 @@ class Buddy:
         q = q.strip()
         if not q:
             return
-        found = aws_tips.search_tips(self.tips, q, 5)
         c = self.main
         c.emote("음…", GRAY, 30)
         c.feel("work", 30)
 
         def work():
-            answer = aws_tips.ask(q, found, self.provider())
-            AppHelper.callAfter(self.answer, q, found, answer)
+            answer = llm.ask(self.provider(), SYSTEM, q)
+            AppHelper.callAfter(self.answer, q, answer)
 
         threading.Thread(target=work, daemon=True).start()
 
-    def answer(self, q, found, answer):
+    def answer(self, q, answer):
         c = self.main
         c.emote_until = c.face_until = 0
         if answer:
-            self.show({"module": 0, "head": f"{llm.PROVIDERS[self.provider()][0]} · {q[:40]}", "text": answer})
-        elif found:
-            results = list(found[:3])
-
-            def show_i(i):
-                t = results[i]
-                more = [(f"다른 결과 ({(i + 1) % len(results) + 1}/{len(results)})", lambda: show_i((i + 1) % len(results)))] if len(results) > 1 else []
-                self.show({"module": 0, "head": t["head"], "text": t["text"]}, extra=more or [("다음 팁", self.next_tip)])
-
-            show_i(0)
+            self.show({"head": f"{llm.PROVIDERS[self.provider()][0]} · {q[:40]}", "text": answer})
         else:
             c.feel("sad", 1.5)
-            self.show({"module": 0, "head": f"질문 · {q[:40]}", "text": "관련 팁을 찾지 못했어요. 다른 키워드(서비스 이름 등)로 물어봐 주세요."})
+            self.show({"head": f"질문 · {q[:40]}", "text": "답을 받지 못했어요. claude·codex·agy CLI에 로그인하거나 설정에서 API 키를 넣어 주세요."})
