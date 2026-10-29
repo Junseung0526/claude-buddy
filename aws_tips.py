@@ -1,16 +1,19 @@
 """AWS 시험 팁 모듈.
 
-이 파일을 지우면 Claude 버디는 팁·물어보기 없이 순수 데스크톱 펫으로 동작합니다.
+이 파일을 지우면 Claude Buddy는 팁·질문하기 없이 순수 데스크톱 펫으로 동작합니다.
 팁 출처: https://learningmate-lab.github.io/cloud-cbt/ (개념 정리 팁 + 문제 해설)
 """
 import json
 import re
+import ssl
 import urllib.request
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+import certifi
+
+DATA_DIR = Path.home() / "Library" / "Application Support" / "Claude Buddy"
 SRC_URL = "https://learningmate-lab.github.io/cloud-cbt/"
-TIPS_FILE = HERE / "tips.json"
+TIPS_FILE = DATA_DIR / "tips.json"
 MODULES = {2: "글로벌 인프라", 3: "IAM", 4: "S3", 5: "EC2", 6: "데이터베이스", 7: "VPC"}
 MODEL = "claude-opus-5-5"
 
@@ -22,12 +25,13 @@ def site_json(html, name):
 
 def load_tips():
     if not TIPS_FILE.exists():
-        html = urllib.request.urlopen(SRC_URL, timeout=20).read().decode("utf-8")
+        html = urllib.request.urlopen(SRC_URL, timeout=20, context=ssl.create_default_context(cafile=certifi.where())).read().decode("utf-8")
         plain = lambda s: re.sub(r"\*\*|`", "", s).strip()
         tips = [{"module": m["module"], "head": f"모듈 {m['module']} · {s['title']}", "text": plain(s["tip"])}
                 for m in site_json(html, "CLOUD_CONCEPTS") for s in m["sections"] if s.get("tip")]
         tips += [{"module": q["module"], "head": f"모듈 {q['module']} · {MODULES.get(q['module'], '')} 시험 포인트",
                   "text": plain(q["explain"])} for q in site_json(html, "CLOUD_QS") if q.get("explain")]
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         TIPS_FILE.write_text(json.dumps(tips, ensure_ascii=False, indent=1))
     tips = json.loads(TIPS_FILE.read_text())
     assert tips and all({"module", "head", "text"} <= t.keys() for t in tips), "tips.json 형식 오류: 파일을 지우고 다시 실행"

@@ -1,3 +1,4 @@
 pyobjc-framework-Cocoa
 pyobjc-framework-Quartz
 anthropic
+certifi
