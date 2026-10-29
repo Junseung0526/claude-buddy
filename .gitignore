@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 빌드 결과 (로컬 경로가 박힘 → make_app.sh로 다시 생성)
+*.app/
+
+# 개인 설정
+settings.json
+
+# 외부 사이트(cloud-cbt) 콘텐츠: 첫 실행 때 자동으로 받아옴
+tips.json
+
+# macOS
+.DS_Store
