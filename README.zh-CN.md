@@ -20,6 +20,8 @@
 
 <p align="center"><a href="README.md">한국어</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <b>简体中文</b> · <a href="README.es.md">Español</a></p>
 
+<p align="center"><img src="docs/zh/demo.gif" width="640" alt="Claude Buddy demo"></p>
+
 ![Claude Code、Antigravity、Codex 角色](docs/characters.png)
 
 一个以 Claude 吉祥物为灵感的像素风角色，会在屏幕底部和其他应用窗口的顶部走来走去。Claude Code 开始工作时，它会在头顶显示当前任务；子代理运行时，会跑出小角色一起干活。你还可以摸摸它、把它扔出去、和它玩球、喂零食，或者一起用专注计时器。向它提问，它会通过你已登录的 Claude、Codex 或 Antigravity CLI 简短回答。界面支持 한국어、English、日本語、简体中文 和 Español。
@@ -206,6 +208,8 @@ cd claude-buddy
 ```bash
 .venv/bin/python buddy.py          # 或 .venv/bin/python -m claude_buddy
 ```
+
+推送版本标签(如 `v1.6.0`)后，GitHub Actions 会构建应用，并用 `CHANGELOG.md` 中对应版本的内容发布 Release。
 
 ---
 

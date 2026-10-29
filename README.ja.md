@@ -20,6 +20,8 @@
 
 <p align="center"><a href="README.md">한국어</a> · <a href="README.en.md">English</a> · <b>日本語</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a></p>
 
+<p align="center"><img src="docs/ja/demo.gif" width="640" alt="Claude Buddy demo"></p>
+
 ![Claude Code・Antigravity・Codex のキャラクター](docs/characters.png)
 
 Claude のマスコットをモチーフにしたピクセルアートのキャラクターが、画面の下端や他のアプリのウィンドウの上を歩き回ります。Claude Code が作業を始めると、いまの作業を頭の上に表示し、サブエージェントが動くと小さなキャラクターが出てきて一緒に働きます。なでたり、投げたり、ボール遊びやおやつ、集中タイマーも一緒にできます。質問すると、ログイン済みの Claude・Codex・Antigravity CLI を通して短く答えてくれます。画面の表示は 한국어・English・日本語・简体中文・Español に対応しています。
@@ -206,6 +208,8 @@ cd claude-buddy
 ```bash
 .venv/bin/python buddy.py          # または .venv/bin/python -m claude_buddy
 ```
+
+バージョンタグ(`v1.6.0` など)をプッシュすると、GitHub Actions がアプリをビルドし、`CHANGELOG.md` の該当バージョンの内容でリリースを公開します。
 
 ---
 

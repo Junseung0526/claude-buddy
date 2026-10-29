@@ -20,6 +20,8 @@
 
 <p align="center"><b>한국어</b> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a></p>
 
+<p align="center"><img src="docs/demo.gif" width="640" alt="Claude Buddy demo"></p>
+
 ![Claude Code, Antigravity, Codex 캐릭터](docs/characters.png)
 
 Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다른 앱 창 위를 걸어 다닙니다. Claude Code가 일을 시작하면 머리 위에 현재 작업을 띄워 주고, 서브에이전트가 실행되면 작은 캐릭터들이 튀어나와 옆에서 함께 일하는 모습을 보여줍니다. 쓰다듬기, 던지기, 공놀이, 간식 주기, 집중 타이머처럼 함께 놀 수 있는 기능도 있고, 궁금한 걸 물으면 로그인된 Claude·Codex·Antigravity CLI로 짧게 답해 줍니다. 화면은 한국어, English, 日本語, 简体中文, Español을 지원합니다.
@@ -206,6 +208,8 @@ cd claude-buddy
 ```bash
 .venv/bin/python buddy.py          # 또는 .venv/bin/python -m claude_buddy
 ```
+
+버전 태그(`v1.6.0` 등)를 푸시하면 GitHub Actions가 앱을 빌드하고, `CHANGELOG.md`의 해당 버전 내용으로 릴리스를 올립니다.
 
 ---
 

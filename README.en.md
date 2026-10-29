@@ -20,6 +20,8 @@
 
 <p align="center"><a href="README.md">한국어</a> · <b>English</b> · <a href="README.ja.md">日本語</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a></p>
 
+<p align="center"><img src="docs/en/demo.gif" width="640" alt="Claude Buddy demo"></p>
+
 ![Claude Code, Antigravity and Codex characters](docs/characters.png)
 
 A pixel-art character inspired by the Claude mascot walks along the bottom of your screen and on top of other app windows. When Claude Code starts working, it shows the current task above its head. When subagents run, small characters pop out and work alongside it. You can also pet it, throw it, play ball, give it snacks and run a focus timer together. Ask it a question and it answers briefly through your signed-in Claude, Codex or Antigravity CLI. The interface is available in 한국어, English, 日本語, 简体中文 and Español.
@@ -206,6 +208,8 @@ Set the version like `VERSION=1.1.0 ./build.sh`. To run without building:
 ```bash
 .venv/bin/python buddy.py          # or .venv/bin/python -m claude_buddy
 ```
+
+Pushing a version tag (such as `v1.6.0`) makes GitHub Actions build the app and publish a release with that version's notes from `CHANGELOG.md`.
 
 ---
 
