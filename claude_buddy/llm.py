@@ -1,9 +1,11 @@
-"""질문하기 답변용 LLM 제공자(Claude·Gemini·GPT)와 API 키(macOS 키체인) 관리."""
+"""질문하기 답변용 LLM 제공자(Claude·Gemini·GPT): 로그인된 CLI가 먼저, 없으면 API 키(macOS 키체인)."""
 import json
 import os
 import re
+import shutil
 import ssl
 import subprocess
+import tempfile
 import urllib.request
 
 import certifi
@@ -16,6 +18,48 @@ PROVIDERS = {
 }
 MAX_TOKENS = 400  # 3문장 답에 충분, 토큰 절약
 SERVICE = "Claude Buddy"
+CLI_NAMES = {"claude": "claude", "gemini": "agy", "gpt": "codex"}
+# 응용 프로그램으로 실행하면 PATH가 /usr/bin:/bin 뿐이라 CLI가 흔히 깔리는 곳을 더해서 찾음
+CLI_PATH = os.pathsep.join([os.environ.get("PATH", ""), os.path.expanduser("~/.local/bin"),
+                            "/opt/homebrew/bin", "/usr/local/bin", os.path.expanduser("~/.npm-global/bin")])
+WORK_DIR = os.path.expanduser("~/Library/Application Support/Claude Buddy")
+
+
+def cli(provider):
+    return shutil.which(CLI_NAMES[provider], path=CLI_PATH)
+
+
+def ask_cli(provider, system, question):
+    """로그인된 CLI로 한 번 묻는다 (도구·세션 기록 없이). 실패하면 None."""
+    exe = cli(provider)
+    if not exe:
+        return None
+    os.makedirs(WORK_DIR, exist_ok=True)
+    env = {**os.environ, "PATH": CLI_PATH}
+    prompt = f"{system}\n\n질문: {question}"  # codex·agy는 시스템 프롬프트 옵션이 없음
+    out = None
+    try:
+        if provider == "claude":
+            # 세션 기록을 남기지 않아 작업 표시에 잡히지 않음
+            cmd = [exe, "-p", question, "--model", "haiku", "--system-prompt", system, "--tools", "",
+                   "--no-session-persistence", "--strict-mcp-config", "--setting-sources", ""]
+        elif provider == "gpt":
+            out = tempfile.NamedTemporaryFile(suffix=".txt", dir=WORK_DIR, delete=False).name
+            cmd = [exe, "exec", "--ephemeral", "--skip-git-repo-check", "-s", "read-only",
+                   "-c", 'model_reasoning_effort="low"', "-o", out, prompt]
+        else:
+            # 기록을 Antigravity 로그 폴더 밖에 남겨 작업 표시에 잡히지 않음
+            cmd = [exe, "-p", prompt, "--effort", "low", "--disable-slash-commands",
+                   "--log-file", os.path.join(WORK_DIR, "agy.log")]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=WORK_DIR, env=env,
+                           stdin=subprocess.DEVNULL)
+        text = (open(out).read() if out else r.stdout).replace("**", "")  # 말풍선은 마크다운을 못 그림
+        return text.strip() if r.returncode == 0 and text.strip() else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+    finally:
+        if out and os.path.exists(out):
+            os.remove(out)
 
 
 def api_key(provider):
@@ -49,12 +93,17 @@ def post_json(url, body, headers):
 
 
 def ask(provider, system, question):
-    """답변 글자, 실패하면 None (부르는 쪽이 로컬 검색 결과로 대신함)."""
+    """답변 글자, 실패하면 None (부르는 쪽이 로컬 검색 결과로 대신함). CLI가 먼저, 안 되면 API 키."""
+    text = ask_cli(provider, system, question)
+    if text:
+        return text
     try:
         model, key = PROVIDERS[provider][1], api_key(provider)
         if provider == "claude":
             import anthropic
-            client = anthropic.Anthropic(api_key=key) if key else anthropic.Anthropic()  # 키가 없으면 ant auth login 정보
+            if not key:
+                return None
+            client = anthropic.Anthropic(api_key=key)
             resp = client.messages.create(
                 model=model, max_tokens=MAX_TOKENS, thinking={"type": "disabled"}, output_config={"effort": "low"},
                 system=system, messages=[{"role": "user", "content": question}])

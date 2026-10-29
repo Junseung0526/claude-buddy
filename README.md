@@ -95,7 +95,7 @@ Claude 마스코트를 픽셀아트로 그린 캐릭터가 화면 아래와 다�
 | 메뉴 | 설명 |
 |---|---|
 | 다음 팁 | 바로 다음 팁 보기 |
-| 질문하기… | 궁금한 내용을 입력하면 관련 팁을 찾아 줌 ([API 키 설정 시](#ai에게-질문하기-선택) Claude·Gemini·GPT가 직접 답변) |
+| 질문하기… | 궁금한 내용을 입력하면 관련 팁을 찾아 줌 ([CLI 로그인이나 API 키가 있으면](#ai에게-질문하기-선택) Claude·Gemini·GPT가 직접 답변) |
 | 모듈별 팁 | 특정 모듈의 팁만 보기 |
 | 간식 주기 | 커서 위치에 쿠키가 떨어지고, 캐릭터가 달려가서 먹음. 쿠키는 드래그로 옮길 수 있음 |
 | 공놀이 | 공을 던지면 쫓아가서 물고 커서 쪽으로 가져옴. 다시 던질 때까지 기다림 |
@@ -227,12 +227,23 @@ cd claude-buddy
 
 | 상황 | 동작 |
 |---|---|
-| API 키가 **없을 때** (기본) | 328개 팁에서 키워드로 관련 내용을 찾아 최대 3개까지 보여줌 |
-| API 키가 **있을 때** | 관련 팁 5개를 근거로 붙여 고른 모델이 한국어 3문장 이내로 답변 |
+| 고른 모델의 **CLI에 로그인돼 있을 때** (기본) | 관련 팁 5개를 근거로 붙여 CLI가 한국어 3문장 이내로 답변. API 키 필요 없음 |
+| CLI가 없고 **API 키가 있을 때** | 같은 방식으로 API를 직접 불러 답변 |
+| 둘 다 없을 때 | 328개 팁에서 키워드로 관련 내용을 찾아 최대 3개까지 보여줌 |
+
+CLI로 답할 때는 구독 사용량을 쓰며, CLI를 띄우느라 답이 5~10초 걸립니다. 도구를 쓰지 않고 세션 기록도 남기지 않으므로 작업 표시에 잡히지 않습니다.
+
+| 선택 | 쓰는 CLI | 로그인 |
+|---|---|---|
+| Claude | `claude -p` (Haiku) | Claude Code 로그인 |
+| Gemini | `agy -p` | Antigravity 로그인 |
+| GPT | `codex exec` | Codex 로그인 |
+
+CLI는 `PATH`, `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`에서 찾습니다.
 
 ### 답변 모델 고르기
 
-메뉴의 **설정 → 질문 답변 모델**에서 고릅니다. 모두 짧은 답에 맞춘 저렴한 모델입니다.
+메뉴의 **설정 → 질문 답변 모델**에서 고릅니다. 아래 모델은 CLI가 없을 때 API 키로 부르는 모델이며, 모두 짧은 답에 맞춘 저렴한 모델입니다.
 
 | 선택 | 모델 | 키 받는 곳 |
 |---|---|---|
@@ -240,13 +251,13 @@ cd claude-buddy
 | Gemini | `gemini-flash-lite-latest` | [Google AI Studio](https://aistudio.google.com/apikey) |
 | GPT | `gpt-5-mini` | [OpenAI Platform](https://platform.openai.com/api-keys) |
 
-### API 키 설정
+### API 키 설정 (CLI가 없을 때만)
 
 모델을 고른 뒤 **설정 → (모델) API 키 설정…** 을 누르고 키를 붙여넣은 뒤 `Enter`를 누릅니다. 입력한 키는 화면에 가려져 보입니다.
 
 - 키는 설정 파일이 아니라 **macOS 키체인**(서비스 이름 `Claude Buddy`)에 모델별로 따로 저장됩니다. 앱을 다시 실행할 필요가 없습니다.
 - 다른 키로 바꾸려면 **API 키 변경…**, 지우려면 **API 키 삭제**를 누릅니다.
-- 키를 찾는 순서는 환경변수(`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`) → 키체인입니다. Claude는 둘 다 없으면 Anthropic CLI 로그인(`ant auth login`) 정보를 씁니다.
+- 키를 찾는 순서는 환경변수(`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`) → 키체인입니다.
 
 ### 비용을 줄이는 설정
 
@@ -370,7 +381,7 @@ __main__ → app → menu, critter, toy, widgets, world, activity, icon → gfx,
 - Claude Code 세션 기록은 **읽기만** 하고 어디에도 보내거나 저장하지 않습니다. 화면에는 도구 이름과 파일 이름 정도만 표시합니다.
 - 외부로 나가는 통신은 두 가지뿐입니다.
   1. 첫 실행 때 cloud-cbt 페이지에서 팁을 받아오는 요청
-  2. (API 키 설정 시) 질문하기에 입력한 질문과 관련 팁을 고른 회사(Anthropic·Google·OpenAI) API로 보내는 요청
+  2. 질문하기에 입력한 질문과 관련 팁을 고른 회사(Anthropic·Google·OpenAI)로 보내는 요청 (CLI 또는 API 키로)
 - 화면 공유 중에는 작업 라벨(파일명 등)이 보일 수 있으니, 필요하면 메뉴바 아이콘 → **캐릭터 숨기기**를 쓰세요.
 
 ---
