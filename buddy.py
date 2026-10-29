@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """화면을 돌아다니며 Claude Code 작업 상황을 보여주는 Claude 캐릭터 데스크톱 펫 (macOS).
-aws_tips.py가 있으면 AWS 시험 팁·물어보기 기능이 켜지고, 지우면 순수 펫으로 동작함.
+aws_tips.py가 있으면 AWS 시험 팁·질문하기 기능이 켜지고, 지우면 순수 펫으로 동작함.
 
-설치·실행: ./make_app.sh 한 번 → "Claude 버디.app" 더블클릭
+설치: GitHub Releases에서 Claude Buddy.app을 받거나, ./build.sh로 직접 빌드
 직접 실행: .venv/bin/python buddy.py
 
 상호작용
   클릭 다음 팁 · 더블클릭 쓰다듬기 · 드래그 들기/던지기 · 커서 올리기 손 흔들기
-  우클릭(또는 메뉴바 ✳︎) 물어보기 / 간식 / 공놀이 / 따라오기 / 집중 타이머 / 재우기 / 설정
+  우클릭(또는 메뉴바 아이콘) 질문하기 / 간식 / 공놀이 / 따라오기 / 집중 타이머 / 재우기 / 설정
   Claude Code가 일하면 머리 위에 지금 하는 작업이 뜨고, 서브에이전트마다 작은 캐릭터가 나와서 같이 일함
 """
 import argparse
@@ -42,10 +42,10 @@ try:  # AWS 시험 팁 (선택 기능): aws_tips.py를 지우면 순수 펫
 except ImportError:
     aws_tips = None
 
-HERE = Path(__file__).resolve().parent
-SETTINGS_FILE = HERE / "settings.json"
+DATA_DIR = Path.home() / "Library" / "Application Support" / "Claude Buddy"  # 앱 번들 안은 쓰기 불가
+SETTINGS_FILE = DATA_DIR / "settings.json"
 PROJECTS = Path(os.environ.get("BUDDY_PROJECTS", Path.home() / ".claude" / "projects"))
-DEFAULTS = {"interval": 60, "scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True}
+DEFAULTS = {"interval": 300, "scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True}
 SHOW_SEC = 25
 GRAVITY = 2200.0
 BUBBLE_W = 380
@@ -55,39 +55,45 @@ MAX_MINIS = 6
 # ---------------------------------------------------------------- 데이터·설정
 def load_settings():
     try:
-        return {**DEFAULTS, **json.loads(SETTINGS_FILE.read_text())}
+        cfg = {**DEFAULTS, **json.loads(SETTINGS_FILE.read_text())}
+        cfg["interval"] = max(60, cfg["interval"])  # 예전 테스트 값(1초 등) 방지
+        return cfg
     except (OSError, ValueError):
         return dict(DEFAULTS)
 
 
 def save_settings(cfg):
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     SETTINGS_FILE.write_text(json.dumps(cfg, ensure_ascii=False, indent=1))
 
 
 # ---------------------------------------------------------------- Claude Code 작업 감시
+DONE_LABEL = "작업 완료"
+
+
 def tool_label(name, inp):
     base = lambda p: Path(str(p)).name or str(p)
     if name == "Read":
-        return f"📖 {base(inp.get('file_path', ''))} 읽는 중"
+        return f"읽는 중 · {base(inp.get('file_path', ''))}"
     if name in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
-        return f"✏️ {base(inp.get('file_path') or inp.get('notebook_path', ''))} 수정 중"
+        return f"수정 중 · {base(inp.get('file_path') or inp.get('notebook_path', ''))}"
     if name == "Bash":
-        return "💻 " + (inp.get("description") or inp.get("command", ""))[:30]
+        return "실행 중 · " + (inp.get("description") or inp.get("command", ""))[:30]
     if name in ("Grep", "Glob"):
-        return "🔍 코드 찾는 중"
+        return "코드 검색 중"
     if name in ("WebFetch", "WebSearch"):
-        return "🌐 웹 검색 중"
+        return "웹 검색 중"
     if name in ("Agent", "Task"):
-        return "👥 " + (inp.get("description") or "서브에이전트 호출")[:30]
+        return "서브에이전트 · " + (inp.get("description") or "호출")[:30]
     if name == "Skill":
-        return f"📚 {inp.get('skill', '')} 스킬"
+        return f"스킬 · {inp.get('skill', '')}"
     if name in ("TodoWrite",) or name.endswith("update_plan"):
-        return "📋 계획 정리 중"
+        return "계획 정리 중"
     if name == "Workflow":
-        return "🧩 워크플로 실행"
+        return "워크플로 실행 중"
     if name.startswith("mcp__"):
-        return "🔌 " + name.split("__")[-1][:24]
-    return f"🔧 {name}"
+        return "도구 · " + name.split("__")[-1][:24]
+    return f"도구 · {name}"
 
 
 class Tail:
@@ -132,12 +138,12 @@ class Tail:
         content = msg.get("content")
         if t == "user":
             if isinstance(content, str):
-                self.label, self.last = "📝 새 요청 받음", ts
+                self.label, self.last = "새 요청 받음", ts
             elif isinstance(content, list):
                 for b in content:
                     if b.get("type") == "tool_result":
                         self.pending.discard(b.get("tool_use_id"))
-                        self.label, self.last = "💭 생각 중", ts
+                        self.label, self.last = "생각 중", ts
         elif t == "assistant" and isinstance(content, list):
             for b in content:
                 bt = b.get("type")
@@ -145,9 +151,9 @@ class Tail:
                     self.pending.add(b.get("id"))
                     self.label = tool_label(b.get("name", ""), b.get("input") or {})
                 elif bt == "thinking":
-                    self.label = "💭 생각 중"
+                    self.label = "생각 중"
                 elif bt == "text":
-                    self.label = "💬 답변 쓰는 중"
+                    self.label = "답변 작성 중"
             self.last = ts
 
     def busy(self, now):
@@ -212,8 +218,8 @@ class Activity:
         if not self.main:
             return None
         if self.main.busy(now):
-            return self.main.label or "💭 생각 중"
-        return "✅ 작업 완료!" if now < self.done_label_until else None
+            return self.main.label or "생각 중"
+        return DONE_LABEL if now < self.done_label_until else None
 
     def active_subs(self):
         return {aid: s for aid, s in self.subs.items() if s["tail"]}
@@ -309,6 +315,8 @@ def tone(h, k):
 
 ORANGE_HEX = "#D97757"
 ORANGE, EYE, PINK, TEAR, GRAY = rgb(ORANGE_HEX), rgb("#1F1F1F"), rgb("#F2A0A8", 0.8), rgb("#7EC8F2"), rgb("#8A8A8A")
+HEART = "<3"  # 이모트 대신 픽셀 하트를 그리라는 표시
+HEART_PX = [".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."]
 MINI_COLORS = ["#E39A5B", "#C96B4E", "#E0866F", "#D98E4A", "#CF7A63", "#E5A177"]
 
 
@@ -378,7 +386,10 @@ class CharView(NSView):
         self.c.owner.release(self.c)
 
     def rightMouseDown_(self, e):
-        NSMenu.popUpContextMenu_withEvent_forView_(self.c.owner.build_menu(NSMenu.alloc().init()), e, self)
+        b = self.c.owner
+        b.menu_open = True  # popUp은 메뉴가 닫혀야 반환됨
+        NSMenu.popUpContextMenu_withEvent_forView_(b.build_menu(NSMenu.alloc().init()), e, self)
+        b.menu_open = False
 
     def drawRect_(self, r):
         draw_critter(self.c, self.c.pose())
@@ -434,7 +445,14 @@ def draw_critter(c, s):
             fill(ex, ey, P, P * 1.25, EYE)
     if face == "surprised":
         fill(bx + bw / 2 - P * 0.35, by + bh * 0.2, P * 0.7, P * 0.7, EYE)
-    if s["emote"]:
+    if s["emote"] and s["emote"][0] == HEART:
+        hp = max(1.5, P * 0.45)
+        hx, hy = min(bx + bw + P * 0.5 - 3.5 * hp, W - 7 * hp), by + bh + P * 0.6 + s["emoteRise"]
+        for r, row in enumerate(HEART_PX):
+            for col, ch in enumerate(row):
+                if ch == "X":
+                    fill(hx + col * hp, hy + (len(HEART_PX) - 1 - r) * hp, hp, hp, s["emote"][1])
+    elif s["emote"]:
         text, color = s["emote"]
         attrs = {NSFontAttributeName: NSFont.boldSystemFontOfSize_(max(10, 2.5 * P)), NSForegroundColorAttributeName: color}
         ns = NSString.stringWithString_(text)
@@ -676,13 +694,35 @@ class ToyView(NSView):
         tf.rotateByDegrees_(self.t.spin)
         tf.translateXBy_yBy_(-TOY / 2, -TOY / 2)
         tf.concat()
-        NSString.stringWithString_(self.t.emoji).drawAtPoint_withAttributes_((2, 2), {NSFontAttributeName: NSFont.systemFontOfSize_(22)})
+        r = NSMakeRect(4, 4, TOY - 8, TOY - 8)
+        oval = NSBezierPath.bezierPathWithOvalInRect_(r)
+        if self.t.kind == "snack":  # 초코칩 쿠키
+            rgb("#C98A4B").setFill()
+            oval.fill()
+            rgb("#A86E37").setStroke()
+            oval.setLineWidth_(1.5)
+            oval.stroke()
+            for x, y in ((9, 16), (16, 20), (18, 11), (11, 9), (21, 16)):
+                fill(x, y, 3, 3, rgb("#4A2C17"))
+        else:  # 야구공
+            NSColor.whiteColor().setFill()
+            oval.fill()
+            rgb("#BBBBBB").setStroke()
+            oval.setLineWidth_(1.2)
+            oval.stroke()
+            rgb("#D0343A").setStroke()
+            for sx in (1, -1):
+                seam = NSBezierPath.bezierPath()
+                cx = TOY / 2 + sx * 9
+                seam.moveToPoint_((cx, 6))
+                seam.curveToPoint_controlPoint1_controlPoint2_((cx, TOY - 6), (TOY / 2 - sx * 1, 12), (TOY / 2 - sx * 1, TOY - 12))
+                seam.setLineWidth_(1.4)
+                seam.stroke()
 
 
 class Toy:
     def __init__(self, world, kind, x, y):
         self.world, self.kind = world, kind
-        self.emoji = "🍪" if kind == "snack" else "⚾"
         self.bounce = 0.35 if kind == "snack" else 0.65
         self.x, self.y, self.vx, self.vy, self.spin = x, y, 0.0, 0.0, 0.0
         self.held, self.carried, self.hist = False, False, []
@@ -792,15 +832,21 @@ class Pill(NSView):
         if self.border:
             self.border.setStroke()
             path.stroke()
+        if self.dot:
+            d = b.size.height * 0.3
+            self.dot.setFill()
+            NSBezierPath.bezierPathWithOvalInRect_(NSMakeRect(b.size.height * 0.425, (b.size.height - d) / 2, d, d)).fill()
 
 
-def pill(text, fn, bg, fg, h=26, size=12, border=None):
+def pill(text, fn, bg, fg, h=26, size=12, border=None, dot=None):
     lb = label(text, size, fg, bold=True)
     lb.sizeToFit()
     lw, lh = lb.frame().size.width, lb.frame().size.height
-    p = Pill.alloc().initWithFrame_(NSMakeRect(0, 0, lw + h * 0.85, h))
-    p.fn, p.bg, p.border = fn, bg, border
-    lb.setFrameOrigin_((h * 0.425, (h - lh) / 2))
+    pad = h * 0.425
+    lead = h * 0.4 if dot else 0  # 상태 점 자리
+    p = Pill.alloc().initWithFrame_(NSMakeRect(0, 0, lw + pad * 2 + lead, h))
+    p.fn, p.bg, p.border, p.dot = fn, bg, border, dot
+    lb.setFrameOrigin_((pad + lead, (h - lh) / 2))
     p.addSubview_(lb)
     return p
 
@@ -819,7 +865,8 @@ class Chip:
             self.win.orderOut_(None)
             self.win = None
         if text:
-            p = pill(text, None, rgb("#FFFFFF", 0.95), rgb("#333333"), h=self.size * 2, size=self.size, border=ORANGE)
+            dot = rgb("#2E9E5B") if text == DONE_LABEL else ORANGE
+            p = pill(text, None, rgb("#FFFFFF", 0.95), rgb("#333333"), h=self.size * 2, size=self.size, border=ORANGE, dot=dot)
             f = p.frame()
             self.win = floating_window(f)
             self.win.setIgnoresMouseEvents_(True)
@@ -935,7 +982,7 @@ class Buddy:
         self.focus_until = 0.0
         self.grab = None
         self.bubble, self.bubble_until = None, 0.0
-        self.ask_win = None
+        self.ask_win, self.menu_open = None, False
         self.manual_hidden, self.hidden, self.fullscreen = False, False, False
         self.hover_since, self.hover_petted = 0.0, False
         now = time.time()
@@ -1024,7 +1071,7 @@ class Buddy:
 
     def pet(self, c):
         c.hop()
-        c.emote("♥", rgb("#E0456B"))
+        c.emote(HEART, rgb("#E0456B"))
         play(self.cfg, "Tink")
 
     # ----- 메뉴
@@ -1057,21 +1104,21 @@ class Buddy:
                     m.addItem_(it)
             m.addItem_(NSMenuItem.separatorItem())
         if aws_tips:
-            m.addItem_(item("💡 다음 팁", "nextTip:"))
-            m.addItem_(item("💬 물어보기…", "ask:"))
-            m.addItem_(sub("📚 모듈별 팁", [item("전체", "setModule:", 0, self.module is None)]
+            m.addItem_(item("다음 팁", "nextTip:"))
+            m.addItem_(item("질문하기…", "ask:"))
+            m.addItem_(sub("모듈별 팁", [item("전체", "setModule:", 0, self.module is None)]
                            + [item(f"모듈 {k} · {n}", "setModule:", k, self.module == k) for k, n in aws_tips.MODULES.items()]))
             m.addItem_(NSMenuItem.separatorItem())
-        m.addItem_(item("🍪 간식 주기", "snack:"))
-        m.addItem_(item("⚾ 공놀이", "ball:"))
-        m.addItem_(item("🐾 커서 따라오기", "follow:", on=self.follow))
-        m.addItem_(item("⏰ 집중 타이머 취소" if self.focus_until else "⏰ 25분 집중 타이머", "focus:"))
-        m.addItem_(item("💤 30분 조용히 (재우기)", "snooze:"))
+        m.addItem_(item("간식 주기", "snack:"))
+        m.addItem_(item("공놀이", "ball:"))
+        m.addItem_(item("커서 따라오기", "follow:", on=self.follow))
+        m.addItem_(item("집중 타이머 취소" if self.focus_until else "집중 타이머 (25분)", "focus:"))
+        m.addItem_(item("30분 동안 쉬기", "snooze:"))
         m.addItem_(NSMenuItem.separatorItem())
         c = self.cfg
         tip_gap = [sub("팁 간격", [item(n, "setInterval:", v, c["interval"] == v) for n, v in
-                               (("30초", 30), ("1분", 60), ("3분", 180), ("5분", 300), ("10분", 600))])] if aws_tips else []
-        m.addItem_(sub("⚙️ 설정", tip_gap + [
+                               (("1분", 60), ("3분", 180), ("5분", 300), ("10분", 600), ("30분", 1800))])] if aws_tips else []
+        m.addItem_(sub("설정", tip_gap + [
             sub("크기", [item(n, "setScale:", v, c["scale"] == v) for n, v in (("작게", 4), ("보통", 6), ("크게", 8))]),
             sub("걷는 속도", [item(n, "setSpeed:", v, c["speed"] == v) for n, v in (("느리게", 35), ("보통", 55), ("빠르게", 85))]),
             item("소리", "toggleSound:", on=c["sound"]),
@@ -1131,7 +1178,7 @@ class Buddy:
         aid = next((a for a, v in self.minis.items() if v is c), None)
         s = self.activity.subs.get(aid)
         if s:
-            self.show({"module": 0, "head": f"👥 서브에이전트 · {s['desc']}",
+            self.show({"module": 0, "head": f"서브에이전트 · {s['desc']}",
                        "text": f"지금: {s['tail'].label or '준비 중'}"}, anchor=c)
 
     # ----- 매 프레임
@@ -1200,7 +1247,7 @@ class Buddy:
 
         if self.bubble and now > self.bubble_until:
             self.close_bubble()
-        if aws_tips and not self.bubble and now > self.next_tip_at and c.state in ("walk", "rest", "look"):
+        if aws_tips and not self.bubble and not self.menu_open and not self.asking() and now > self.next_tip_at and c.state in ("walk", "rest", "look"):
             self.show()
         self.chip.place(c.cx, c.y + c.H, not self.bubble and c.state != "held")
 
@@ -1247,11 +1294,11 @@ class Buddy:
             c.emote("어서와요!")
         if now - self.active_since > 50 * 60 and not self.bubble and not self.focus_until:
             self.active_since = now
-            self.show({"module": 0, "head": "🙆 쉬는 시간", "text": "50분째 쉬지 않고 달리는 중이에요! 일어나서 기지개 한 번 켜고 물 한 잔 마셔요."})
+            self.show({"module": 0, "head": "쉬는 시간", "text": "50분째 쉬지 않고 달리는 중이에요! 일어나서 기지개 한 번 켜고 물 한 잔 마셔요."})
         today = datetime.date.today()
         if self.night() and self.night_told != today and not self.bubble:
             self.night_told = today
-            self.show({"module": 0, "head": "🌙 늦은 밤", "text": f"벌써 새벽 {datetime.datetime.now().hour}시예요. 잠도 공부예요. 오늘은 여기까지 할까요?"})
+            self.show({"module": 0, "head": "늦은 밤", "text": f"벌써 새벽 {datetime.datetime.now().hour}시예요. 잠도 공부예요. 오늘은 여기까지 할까요?"})
 
     def brain(self, now, dt, m):
         c = self.main
@@ -1261,7 +1308,7 @@ class Buddy:
             c.state = "rest"
         speed = self.cfg["speed"]
         toy = self.toy
-        if self.bubble:
+        if self.bubble or self.menu_open or self.asking():  # 메뉴·질문창이 캐릭터를 따라가지 않게 멈춤
             if c.state in ("walk", "fetch"):
                 c.state = "rest"
             return
@@ -1279,7 +1326,7 @@ class Buddy:
                     toy.close()
                     self.toy = None
                     c.hop()
-                    c.emote("냠냠 ♥", rgb("#E0456B"), 1.8)
+                    c.emote(HEART, rgb("#E0456B"), 1.8)
                     play(self.cfg, "Bottle")
                 else:
                     toy.carried = True
@@ -1296,7 +1343,7 @@ class Buddy:
                 self.focus_until = 0.0
                 c.hop()
                 play(self.cfg, "Glass")
-                self.show({"module": 0, "head": "⏰ 25분 집중 끝!", "text": "수고했어요! 5분 쉬고 물 한 잔 마시고 다시 달려요 ☕"})
+                self.show({"module": 0, "head": "집중 시간 종료", "text": "25분 집중을 마쳤어요. 5분 쉬고 물 한 잔 마신 뒤 다시 시작해요."})
             return
         if self.cfg["activity"] and self.activity.busy(now) and c.state != "sleep":
             if c.state != "work":
@@ -1368,10 +1415,10 @@ class Buddy:
             c.hop(300, "happy", 0.6)
         c.emote("!")
         pad, inner = 16, BUBBLE_W - 32
-        head = label(t["head"] if t["head"][:1] in "💡👥⏰🙆🌙💬🔍" else f"💡 {t['head']}", 12, ORANGE, bold=True, width=inner)
+        head = label(t["head"], 12, ORANGE, bold=True, width=inner)
         body = label(t["text"], 14, rgb("#222222"), width=inner)
         hh, th = head.fittingSize().height, body.fittingSize().height
-        buttons = extra or [("다음 팁 ▶", self.next_tip)]
+        buttons = extra or [("다음 팁", self.next_tip)]
         pills = [pill(txt, fn, ORANGE, NSColor.whiteColor()) for txt, fn in buttons]
         pills.append(pill("닫기", self.close_bubble, rgb("#F1EDE8"), rgb("#666666")))
         tail = BubbleView.TAIL
@@ -1401,6 +1448,9 @@ class Buddy:
         self.bubble_until = time.time() + SHOW_SEC
 
     # ----- 물어보기
+    def asking(self):
+        return bool(self.ask_win and self.ask_win.isVisible())
+
     def open_ask(self):
         self.close_bubble(reschedule=False)
         if self.ask_win:
@@ -1415,7 +1465,7 @@ class Buddy:
         bv.tail_x = max(20, min(c.cx - x, w - 20))
         win.setContentView_(bv)
         field = NSTextField.alloc().initWithFrame_(NSMakeRect(14, 22, w - 28, 26))
-        field.setPlaceholderString_("AWS 궁금한 거 물어보세요 (예: S3 Glacier 차이)  ⏎")
+        field.setPlaceholderString_("AWS 관련 질문을 입력하고 Enter (예: S3 Glacier 차이)")
         field.setFont_(NSFont.systemFontOfSize_(13))
         field.setTextColor_(rgb("#222222"))  # 다크 모드에서 흰 글자로 안 보이던 문제
         field.setBezeled_(False)
@@ -1456,19 +1506,19 @@ class Buddy:
         c = self.main
         c.emote_until = c.face_until = 0
         if answer:
-            self.show({"module": 0, "head": f"💬 {q[:40]}", "text": answer})
+            self.show({"module": 0, "head": f"질문 · {q[:40]}", "text": answer})
         elif found:
             results = list(found[:3])
 
             def show_i(i):
                 t = results[i]
-                more = [(f"다른 결과 ({(i + 1) % len(results) + 1}/{len(results)}) ▶", lambda: show_i((i + 1) % len(results)))] if len(results) > 1 else []
-                self.show({"module": 0, "head": f"🔍 {t['head']}", "text": t["text"]}, extra=more or [("다음 팁 ▶", self.next_tip)])
+                more = [(f"다른 결과 ({(i + 1) % len(results) + 1}/{len(results)})", lambda: show_i((i + 1) % len(results)))] if len(results) > 1 else []
+                self.show({"module": 0, "head": t["head"], "text": t["text"]}, extra=more or [("다음 팁", self.next_tip)])
 
             show_i(0)
         else:
             c.feel("sad", 1.5)
-            self.show({"module": 0, "head": f"💬 {q[:40]}", "text": "관련 팁을 못 찾았어요 😅 다른 키워드(서비스 이름 등)로 물어봐 주세요."})
+            self.show({"module": 0, "head": f"질문 · {q[:40]}", "text": "관련 팁을 찾지 못했어요. 다른 키워드(서비스 이름 등)로 물어봐 주세요."})
 
 
 # ---------------------------------------------------------------- 아이콘
@@ -1504,7 +1554,7 @@ def write_icon(path, px=1024):
 
 def main():
     ap = argparse.ArgumentParser(description="AWS 시험 팁 + Claude Code 작업 상황을 보여주는 Claude 데스크톱 펫")
-    ap.add_argument("--icon", help="아이콘 PNG만 만들고 종료 (make_app.sh용)")
+    ap.add_argument("--icon", help="아이콘 PNG만 만들고 종료 (build.sh용)")
     args = ap.parse_args()
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)  # Dock 아이콘 없이
