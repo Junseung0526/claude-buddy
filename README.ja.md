@@ -1,8 +1,24 @@
-# Claude Buddy
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Claude Buddy">
+</p>
 
-[한국어](README.md) | [English](README.en.md) | **日本語** | [简体中文](README.zh-CN.md) | [Español](README.es.md)
+<h1 align="center">Claude Buddy</h1>
 
-> 画面の中を歩き回りながら、**Claude Code・Codex・Antigravity がいま何をしているか**を見せてくれる macOS デスクトップペット
+<p align="center">画面の中を歩き回りながら、<b>Claude Code・Codex・Antigravity がいま何をしているか</b>を見せてくれる macOS デスクトップペット</p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/Junseung0526/claude-buddy?color=D97757"></a>
+  <a href="https://github.com/Junseung0526/claude-buddy/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Junseung0526/claude-buddy/total?color=D97757"></a>
+  <img alt="macOS Apple Silicon" src="https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple">
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest/download/Claude-Buddy-macOS-arm64.zip"><b>⬇ macOS 版をダウンロード</b></a>
+</p>
+
+<p align="center"><a href="README.md">한국어</a> · <a href="README.en.md">English</a> · <b>日本語</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a></p>
 
 ![Claude Code・Antigravity・Codex のキャラクター](docs/characters.png)
 
@@ -335,6 +351,8 @@ claude-buddy/
 ├── build.sh              # PyInstaller で単体アプリ(.app)と配布用 zip を作成
 ├── requirements.txt      # 依存パッケージ
 ├── docs/                 # README の画像(言語ごとのフォルダ)
+├── LICENSE               # MIT
+├── CHANGELOG.md          # 変更履歴
 ├── THIRD_PARTY_NOTICES.md # アプリに同梱するオープンソースのライセンス表示
 ├── README.md             # 韓国語(README.en.md · README.ja.md · README.zh-CN.md · README.es.md)
 └── .gitignore
@@ -402,3 +420,4 @@ __main__ → app → menu, critter, toy, widgets, world, activity, usage, llm, i
 - キャラクター: Anthropic の Claude マスコットに着想を得たファンメイドのピクセルアートで、Anthropic とは公式の関係はありません。
 - 「Claude」は Anthropic の商標です。Codex は OpenAI、Antigravity・Gemini は Google の製品です。本プロジェクトは非公式のファンプロジェクトで、いずれの会社の承認や後援も受けていません。
 - アプリに同梱しているオープンソースのコンポーネントとライセンスは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) にあります(アプリ内の `Contents/Resources` にも含まれます)。
+- このプロジェクトは [MIT ライセンス](LICENSE) で公開しています。

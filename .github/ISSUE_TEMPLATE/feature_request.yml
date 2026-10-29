@@ -1,0 +1,14 @@
+name: Feature request / 기능 제안
+description: Suggest a new move, toy or feature.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like? / 원하는 기능
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help? / 왜 필요한가요?

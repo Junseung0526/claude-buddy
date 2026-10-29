@@ -1,0 +1,33 @@
+name: Bug report / 버그 신고
+description: Something doesn't work as expected.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / 무슨 일이 있었나요?
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Claude Buddy version
+      placeholder: "1.5.0"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and chip
+      placeholder: "macOS 26.1, M3"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Terminal output
+      description: |
+        Run `"/Applications/Claude Buddy.app/Contents/MacOS/Claude Buddy"` in Terminal and paste any errors.
+        Remove file names or paths you don't want to share.
+      render: text

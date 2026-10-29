@@ -1,8 +1,24 @@
-# Claude Buddy
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Claude Buddy">
+</p>
 
-[한국어](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | **Español**
+<h1 align="center">Claude Buddy</h1>
 
-> Una mascota de escritorio para macOS que pasea por tu pantalla y te muestra **qué están haciendo ahora mismo Claude Code, Codex y Antigravity**
+<p align="center">Una mascota de escritorio para macOS que pasea por tu pantalla y te muestra <b>qué están haciendo ahora mismo Claude Code, Codex y Antigravity</b></p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/Junseung0526/claude-buddy?color=D97757"></a>
+  <a href="https://github.com/Junseung0526/claude-buddy/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Junseung0526/claude-buddy/total?color=D97757"></a>
+  <img alt="macOS Apple Silicon" src="https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple">
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest/download/Claude-Buddy-macOS-arm64.zip"><b>⬇ Descargar para macOS</b></a>
+</p>
+
+<p align="center"><a href="README.md">한국어</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Español</b></p>
 
 ![Personajes de Claude Code, Antigravity y Codex](docs/characters.png)
 
@@ -335,6 +351,8 @@ claude-buddy/
 ├── build.sh              # Compila la app independiente (.app) y el zip de publicación con PyInstaller
 ├── requirements.txt      # Dependencias
 ├── docs/                 # Imágenes del README (una carpeta por idioma)
+├── LICENSE               # MIT
+├── CHANGELOG.md          # Historial de cambios
 ├── THIRD_PARTY_NOTICES.md # Licencias de código abierto de los componentes incluidos en la app
 ├── README.md             # Coreano (README.en.md · README.ja.md · README.zh-CN.md · README.es.md)
 └── .gitignore
@@ -402,3 +420,4 @@ Archivos creados al ejecutar (no están en el repositorio):
 - Personaje: pixel art hecho por fans e inspirado en la mascota Claude de Anthropic. Sin relación oficial con Anthropic.
 - "Claude" es una marca de Anthropic. Codex es un producto de OpenAI, y Antigravity y Gemini son productos de Google. Este es un proyecto no oficial hecho por fans, sin aprobación ni patrocinio de ninguna de ellas.
 - Los componentes de código abierto incluidos en la app y sus licencias están en [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (también dentro de la app, en `Contents/Resources`).
+- Este proyecto se publica bajo la [licencia MIT](LICENSE).

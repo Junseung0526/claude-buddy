@@ -1,8 +1,24 @@
-# Claude Buddy
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Claude Buddy">
+</p>
 
-[한국어](README.md) | [English](README.en.md) | [日本語](README.ja.md) | **简体中文** | [Español](README.es.md)
+<h1 align="center">Claude Buddy</h1>
 
-> 一只在屏幕上走来走去、同时告诉你 **Claude Code、Codex 和 Antigravity 此刻在做什么** 的 macOS 桌面宠物
+<p align="center">一只在屏幕上走来走去、同时告诉你 <b>Claude Code、Codex 和 Antigravity 此刻在做什么</b> 的 macOS 桌面宠物</p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/Junseung0526/claude-buddy?color=D97757"></a>
+  <a href="https://github.com/Junseung0526/claude-buddy/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Junseung0526/claude-buddy/total?color=D97757"></a>
+  <img alt="macOS Apple Silicon" src="https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple">
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Junseung0526/claude-buddy/releases/latest/download/Claude-Buddy-macOS-arm64.zip"><b>⬇ 下载 macOS 版</b></a>
+</p>
+
+<p align="center"><a href="README.md">한국어</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <b>简体中文</b> · <a href="README.es.md">Español</a></p>
 
 ![Claude Code、Antigravity、Codex 角色](docs/characters.png)
 
@@ -335,6 +351,8 @@ claude-buddy/
 ├── build.sh              # 用 PyInstaller 构建独立应用(.app)和发布用 zip
 ├── requirements.txt      # 依赖
 ├── docs/                 # README 图片(每种语言一个文件夹)
+├── LICENSE               # MIT
+├── CHANGELOG.md          # 更新日志
 ├── THIRD_PARTY_NOTICES.md # 应用中附带的开源组件许可声明
 ├── README.md             # 韩语(README.en.md · README.ja.md · README.zh-CN.md · README.es.md)
 └── .gitignore
@@ -402,3 +420,4 @@ __main__ → app → menu, critter, toy, widgets, world, activity, usage, llm, i
 - 角色:受 Anthropic 的 Claude 吉祥物启发的粉丝自制像素画，与 Anthropic 没有官方关系。
 - "Claude"是 Anthropic 的商标。Codex 是 OpenAI 的产品，Antigravity 和 Gemini 是 Google 的产品。本项目是非官方的粉丝项目，未获得上述任何公司的认可或赞助。
 - 应用中附带的开源组件及其许可证列在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 中(也包含在应用内的 `Contents/Resources` 中)。
+- 本项目基于 [MIT 许可证](LICENSE) 发布。

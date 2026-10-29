@@ -1,0 +1,60 @@
+# Changelog
+
+All notable changes to Claude Buddy. Downloads are on the [Releases](https://github.com/Junseung0526/claude-buddy/releases) page.
+
+## [1.5.0] - 2026-10-30
+### Added
+- Usage window: today's output and input tokens, sessions and replies, a 7-day output chart with hover values, and today's output per project.
+- Interface languages: 한국어, English, 日本語, 简体中文, Español (or follow the system language). Existing users stay on Korean.
+- Eight new idle moves: dance, stretch, sit, zoomies, backflip, trip, yawn and sneeze, with fewer energetic moves at night.
+- Ask answers note that they are AI-generated and may be wrong.
+- Third-party license notices bundled in the app; README in five languages.
+### Fixed
+- Speech bubbles raising an error when shown.
+
+## [1.4.0] - 2026-10-30
+### Added
+- "Needs you" alert with sound and notification when Claude Code waits for an answer or permission.
+- Notification when a task longer than one minute finishes.
+- Today's Claude Code usage in the menu.
+### Changed
+- Became a general-purpose desktop pet: AWS exam tips, automatic tip bubbles and the tip interval setting were removed. Ask answers any question.
+
+## [1.2.2] - 2026-10-30
+### Security
+- Gemini (`agy`) runs with `--sandbox` when answering Ask questions.
+- Downloaded tips are treated as reference material only, never as instructions.
+
+## [1.2.1] - 2026-10-30
+### Changed
+- Ask uses the signed-in CLI (`claude -p`, `codex exec`, `agy -p`) so no API key is needed. Falls back to a stored API key.
+- Asking no longer leaves a session log, so it doesn't show up as agent work.
+
+## [1.2.0] - 2026-10-30
+### Added
+- Prop animations for each kind of task (book, pencil, terminal, magnifier, globe, checklist, speech bubble, thought cloud).
+- More detailed task labels with file names, search terms, domains and elapsed time.
+### Changed
+- Adaptive frame rate (60 / 20 / 2 fps) roughly halves average CPU use.
+
+## [1.1.0] - 2026-10-29
+### Added
+- Characters for Codex (GPT) and Antigravity (Gemini) activity.
+- Choice of answer model for Ask (Claude, Gemini, GPT) and API keys stored in the macOS Keychain.
+### Changed
+- Status switches to "Done" as soon as Claude Code finishes replying.
+- Cheaper Ask answers (low-cost models, 400-token limit).
+- Code split into the `claude_buddy` package.
+### Fixed
+- Repeated errors when tips could not be downloaded.
+
+## [1.0.0] - 2026-10-29
+- First release for macOS (Apple Silicon).
+
+[1.5.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.5.0
+[1.4.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.4.0
+[1.2.2]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.2.2
+[1.2.1]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.2.1
+[1.2.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.2.0
+[1.1.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.1.0
+[1.0.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.0.0
