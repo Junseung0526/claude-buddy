@@ -2,12 +2,14 @@
 
 import datetime
 import random
+import re
+import sys
 import threading
 import time
 
 from AppKit import (
     NSApp, NSAppearance, NSAppearanceNameAqua, NSBackingStoreBuffered, NSColor, NSEvent, NSFloatingWindowLevel, NSFont, NSMakeRect,
-    NSMenu, NSSecureTextField, NSStatusBar, NSTextField, NSWindow, NSWindowStyleMaskClosable, NSWindowStyleMaskTitled,
+    NSBundle, NSMenu, NSSecureTextField, NSStatusBar, NSTextField, NSWindow, NSWindowStyleMaskClosable, NSWindowStyleMaskTitled,
 )
 from Foundation import NSRunLoop, NSRunLoopCommonModes, NSTimer
 from PyObjCTools import AppHelper
@@ -18,7 +20,7 @@ from Quartz import (
 from . import i18n, llm, usage
 from .i18n import localize, t
 from .activity import Activity, label_kind
-from .config import BUBBLE_W, MAX_MINIS, SHOW_SEC, save_settings
+from .config import BUBBLE_W, MAX_MINIS, RELEASES_API, SHOW_SEC, save_settings
 from .critter import Critter
 from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, notify, play, rgb
 from .icon import icon_image
@@ -26,6 +28,13 @@ from .menu import Ctl
 from .toy import TOY, Toy
 from .widgets import BubbleView, Chip, UsageView, pill
 from .world import World
+
+
+MILESTONES = (100_000, 300_000, 1_000_000, 3_000_000)  # 하루 출력 토큰 축하 기준
+
+
+def version_tuple(v):
+    return tuple(int(x) for x in re.findall(r"\d+", v)[:3])
 
 
 SYSTEM = "You are a desktop pet and helper living on the user's screen. Answer in {language} in at most 3 short, accurate sentences."
@@ -55,6 +64,9 @@ class Buddy:
         self.next_slow = 0.0
         self.activity = Activity()
         self.alerted = False  # 이번 확인 필요를 이미 알렸는지
+        self.error_quiet_until = 0.0  # 명령 실패 반응이 너무 잦지 않게
+        self.milestone, self.next_usage_check = None, now + 5  # (날짜, 축하한 기준)
+        self.update_tag, self.next_update_check = None, now + 30  # 새 버전 확인은 시작 30초 뒤, 그 뒤 하루 한 번
         self.active_since, self.was_idle, self.stretch_told, self.night_told = now, False, False, None
         self.status = NSStatusBar.systemStatusBar().statusItemWithLength_(-1)
         self.status.button().setImage_(icon_image(18))
@@ -98,6 +110,61 @@ class Buddy:
             for aid in list(self.minis):
                 self.remove_mini(aid)
         self.main.emote("OK!")
+
+    def check_milestone(self):
+        """오늘 출력 토큰이 기준을 처음 넘으면 축하 (앱을 켤 때 이미 넘은 건 축하하지 않음)."""
+        day = datetime.date.today()
+        try:
+            hit = max([m for m in MILESTONES if usage.today()[4] >= m], default=0)
+        except OSError:
+            return
+        if self.milestone and self.milestone[0] == day and hit > self.milestone[1] and self.main.state not in ("held", "sleep"):
+            if not self.main.airborne():
+                self.main.hop(480, "happy", 1.8)
+            self.main.emote(t("{v} 토큰!", v=i18n.fmt(hit)), ORANGE, 3)
+            play(self.cfg, "Hero")
+        self.milestone = (day, hit)
+
+    def check_update(self):
+        """GitHub 최신 릴리스가 지금 버전보다 새로우면 알림 (앱 번들로 실행 중일 때만)."""
+        cur = NSBundle.mainBundle().infoDictionary().get("CFBundleShortVersionString") if getattr(sys, "frozen", False) else None
+        if not cur or not self.cfg["updates"]:
+            return
+
+        def work():
+            try:
+                tag = llm.get_json(RELEASES_API)["tag_name"]
+            except Exception:  # noqa: BLE001 - 오프라인 등은 조용히 넘어감
+                return
+            if version_tuple(tag) > version_tuple(cur):
+                AppHelper.callAfter(self.found_update, tag)
+        threading.Thread(target=work, daemon=True).start()
+
+    def found_update(self, tag):
+        if tag == self.update_tag:
+            return
+        self.update_tag = tag
+        self.main.emote(t("새 버전!"), ORANGE, 2.5)
+        notify(self.cfg, t("Claude Buddy 업데이트"), t("{v} 버전이 나왔어요. 메뉴에서 받을 수 있어요.", v=tag))
+
+    def react(self, ev, now):
+        """명령·테스트 결과에 반응."""
+        c = self.main
+        if c.state in ("held", "sleep"):
+            return
+        if ev == "test_pass":
+            if not c.airborne():
+                c.hop(420, "happy", 1.5)
+            c.emote(t("통과!"), rgb("#2E7D32"), 2)
+            play(self.cfg, "Glass")
+        elif ev == "test_fail":
+            c.feel("sad", 2.5)
+            c.emote(t("테스트 실패.."), GRAY, 2.2)
+            play(self.cfg, "Basso")
+        elif now > self.error_quiet_until:  # 실패한 명령(검색 결과 없음 등)은 흔해서 20초에 한 번만
+            self.error_quiet_until = now + 20
+            c.feel("surprised", 1.2)
+            c.emote(t("앗, 에러!"), GRAY, 1.6)
 
     def night(self):
         return 0 <= datetime.datetime.now().hour < 5
@@ -313,6 +380,9 @@ class Buddy:
                 self.activity.finished_after = 0.0
             elif self.activity.finished_after:
                 self.activity.finished_after = 0.0
+            evs = self.activity.take_events()
+            if evs:  # 한꺼번에 오면 테스트 결과를 먼저
+                self.react(next((e for e in ("test_fail", "test_pass") if e in evs), evs[-1]), now)
             subs = self.activity.active_subs()
             for aid, s in subs.items():
                 if aid not in self.minis and not s["finished"] and len(self.minis) < MAX_MINIS:
@@ -325,6 +395,13 @@ class Buddy:
                     play(self.cfg, "Glass")
             for aid in [a for a, mc in self.minis.items() if a not in subs]:
                 self.remove_mini(aid)
+
+        if self.cfg["activity"] and now > self.next_usage_check:
+            self.next_usage_check = now + 60
+            self.check_milestone()
+        if now > self.next_update_check:
+            self.next_update_check = now + 86400
+            self.check_update()
 
         idle = CGEventSourceSecondsSinceLastEventType(kCGEventSourceStateHIDSystemState, kCGAnyInputEventType)
         if idle > 300:

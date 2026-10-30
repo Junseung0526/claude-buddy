@@ -73,6 +73,8 @@ Un personaje en pixel art inspirado en la mascota de Claude camina por la parte 
 - **Ahorro de batería**: dibuja a 60 fps solo al caminar o saltar, a 20 fps cuando está quieto y a 2 fps cuando está oculto. Si nada cambia en pantalla, no se redibuja.
 - **Aviso de "requiere atención"**: cuando Claude Code espera tu respuesta a una pregunta (AskUserQuestion, aprobación del plan), el personaje saluda con la mano, muestra "¡Revisa esto!" y avisa con un sonido y una notificación de macOS. La espera de permisos no se escribe en el registro de la sesión, así que la app la supone cuando una herramienta de edición, escritura o descarga web lleva más de 8 segundos sin resultado. Los comandos de shell (Bash) quedan fuera porque pueden tardar mucho legítimamente.
 - **Aviso al terminar tareas largas**: cuando termina una tarea que duró más de un minuto, recibes una notificación de macOS aunque estés mirando otra app.
+- **Reacciona a comandos y tests**: cuando Claude Code ejecuta tests, salta con "¡Pasó!" si pasan o se pone triste con "Fallaron.." si fallan. Si un comando falla, se sorprende con "¡Uy, error!" (como mucho cada 20 segundos). Los comandos que rechazaste no cuentan.
+- **Hitos de uso**: cuando los tokens de salida de hoy superan por primera vez 100K, 300K, 1M o 3M, salta para celebrarlo.
 - **Ventana de uso**: elige **Ver uso…** en el menú para abrir una ventana con los tokens de salida y entrada de hoy, las sesiones y respuestas, un gráfico de barras de los tokens de salida de los últimos 7 días (pasa el ratón sobre una barra para ver el valor exacto) y la salida de hoy por proyecto. Solo suma los campos usage de los registros de sesión y no envía nada a ningún sitio.
 
   ![Ventana de uso (datos de ejemplo)](docs/es/usage.png)
@@ -142,6 +144,8 @@ Un personaje en pixel art inspirado en la mascota de Claude camina por la parte 
 - **Se oculta en pantalla completa**: si la app en primer plano está en pantalla completa (vídeo, presentación), se oculta automáticamente y vuelve después.
 - **Sonidos**: sonidos breves del sistema al hacer clic, comer, atrapar, terminar, etc. Puedes desactivarlos en Ajustes.
 - **Sin icono en el Dock**: solo aparece el icono de la barra de menús.
+- **Abrir al iniciar sesión**: actívalo en Ajustes → **Abrir al iniciar sesión**.
+- **Aviso de actualización**: una vez al día busca en GitHub una versión nueva. Si la hay, el personaje dice "¡Nueva versión!" y el menú muestra **Descargar versión…**. Desactívalo en Ajustes → **Buscar actualizaciones**.
 
 ---
 
@@ -182,7 +186,7 @@ La app no está firmada ni notarizada con un certificado de desarrollador de App
 
 - Haz doble clic en `Claude Buddy.app`. Aparece el personaje y un icono en la barra de menús. No aparece en el Dock.
 - Para salir, haz clic derecho en el personaje o usa el icono de la barra de menús y elige **Salir**.
-- Para abrirlo al iniciar sesión, añádelo tú en **Ajustes del Sistema → General → Ítems de inicio** (no se añade por defecto).
+- Para abrirlo al iniciar sesión, activa **Ajustes → Abrir al iniciar sesión** en el menú (desactivado por defecto).
 
 ---
 
@@ -234,6 +238,8 @@ Cámbialos en **Ajustes** del menú. Los valores se guardan en `~/Library/Applic
 | Idioma | `lang` | Usar idioma del sistema (`auto`) / 한국어 (`ko`) / English (`en`) / 日本語 (`ja`) / 简体中文 (`zh`) / Español (`es`) | Idioma del sistema (coreano para quien ya usaba la app antes de añadir idiomas) |
 | Subir a las ventanas | `windows` | Sí / No | Sí |
 | Mostrar trabajo de agentes | `activity` | Sí / No | Sí |
+| Buscar actualizaciones | `updates` | Sí / No | Sí |
+| Abrir al iniciar sesión | (ítems de inicio de macOS) | Sí / No | No |
 | Modelo de respuesta | `ask_provider` | Claude / Gemini / GPT | Claude (`claude`) |
 
 También puedes editar `settings.json` directamente (se aplica tras reiniciar).
@@ -246,6 +252,7 @@ También puedes editar `settings.json` directamente (se aplica tras reiniciar).
  "windows": true,
  "activity": true,
  "notify": true,
+ "updates": true,
  "lang": "es",
  "ask_provider": "claude"
 }
@@ -388,6 +395,7 @@ Archivos creados al ejecutar (no están en el repositorio):
 - Todo se procesa **solo en tu Mac**.
 - Los registros de sesión de Claude Code **solo se leen**; no se envían ni se guardan en ningún sitio. En pantalla se muestran poco más que nombres de herramientas y de archivos.
 - La única comunicación hacia fuera es la pregunta que escribes en Preguntar, enviada al proveedor elegido (Anthropic, Google u OpenAI) a través de su CLI o de tu clave API.
+- Con **Buscar actualizaciones** activado, la app pregunta a la API de GitHub la última versión una vez al día. No se envía nada sobre ti ni sobre tu uso.
 - No hay cuentas ni registro, ni estadísticas de uso, anuncios o código de seguimiento.
 - Los únicos datos que quedan son el archivo de ajustes y las claves API del llavero. Para borrarlos, elimina la carpeta `~/Library/Application Support/Claude Buddy` y usa **Borrar clave API** en el menú (o borra los elementos `Claude Buddy` en Acceso a Llaveros).
 - Al compartir pantalla pueden verse las etiquetas de tarea (nombres de archivo, etc.). Si hace falta, usa el icono de la barra de menús → **Ocultar personaje**.

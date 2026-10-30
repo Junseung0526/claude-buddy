@@ -2,6 +2,15 @@
 
 All notable changes to Claude Buddy. Downloads are on the [Releases](https://github.com/Junseung0526/claude-buddy/releases) page.
 
+## [1.6.0] - 2026-10-30
+### Added
+- Reactions to command and test results: "Passed!" with a jump, "Tests failed.." with a sad face, and "Oops, error!" for failed commands (at most every 20 seconds). Declined commands are ignored.
+- Usage milestones: a celebration when today's output tokens first pass 100K, 300K, 1M or 3M.
+- Settings → Open at login.
+- Daily update check against GitHub releases, with a menu item to get the new version. Can be turned off in Settings.
+### Changed
+- Short numbers drop a trailing ".0" (157K instead of 157.0K).
+
 ## [1.5.1] - 2026-10-30
 ### Fixed
 - Speech text above the character (such as "Following you!") was cut off at the edge in English and other languages. Long text now shrinks to fit at every size.
@@ -55,6 +64,7 @@ All notable changes to Claude Buddy. Downloads are on the [Releases](https://git
 ## [1.0.0] - 2026-10-29
 - First release for macOS (Apple Silicon).
 
+[1.6.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.6.0
 [1.5.1]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.5.1
 [1.5.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.4.0

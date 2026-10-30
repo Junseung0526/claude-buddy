@@ -73,6 +73,8 @@ A pixel-art character inspired by the Claude mascot walks along the bottom of yo
 - **Battery saving**: it draws at 60 fps only while walking or jumping, 20 fps while standing still and 2 fps while hidden. Nothing is redrawn if nothing changed on screen.
 - **"Needs you" alert**: when Claude Code is waiting for your answer to a question (AskUserQuestion, plan approval), the character waves, shows "Check this!" and plays a sound with a macOS notification. Waiting for permission isn't written to the session log, so the app assumes it when an edit, write or web-fetch tool has had no result for more than 8 seconds. Shell commands (Bash) are excluded because they can legitimately take a long time.
 - **Long task finished**: when a task that took more than a minute finishes, you get a macOS notification, even if you're looking at another app.
+- **Reacts to command and test results**: when Claude Code runs tests, the character jumps with "Passed!" or looks sad with "Tests failed..". A failed command gets a surprised "Oops, error!" (at most once every 20 seconds). Commands you declined are ignored.
+- **Usage milestones**: when today's output tokens first pass 100K, 300K, 1M or 3M, the character jumps and celebrates.
 - **Usage window**: choose **Usage…** in the menu to open a window with today's output and input tokens, sessions and replies, a bar chart of output tokens for the last 7 days (hover a bar for the exact value) and today's output per project. It only adds up the usage fields in your session logs and sends nothing anywhere.
 
   ![Usage window (sample data)](docs/en/usage.png)
@@ -142,6 +144,8 @@ A pixel-art character inspired by the Claude mascot walks along the bottom of yo
 - **Hides during full screen**: if the front app is full screen (video, presentation), it hides automatically and comes back afterwards.
 - **Sounds**: short system sounds for moments like clicks, eating, catching and finishing. You can turn them off in Settings.
 - **No Dock icon**: only the menu bar icon appears.
+- **Open at login**: turn it on under Settings → **Open at login**.
+- **Update alert**: once a day it checks GitHub for a newer release. If there is one, the character says "New version!" and the menu shows **Get new version…**. Turn it off under Settings → **Check for updates**.
 
 ---
 
@@ -182,7 +186,7 @@ The app isn't signed or notarized with an Apple developer certificate, so macOS 
 
 - Double-click `Claude Buddy.app`. The character appears and an icon shows up in the menu bar. It doesn't appear in the Dock.
 - To quit, right-click the character or use the menu bar icon and choose **Quit**.
-- To start it at login, add it yourself under **System Settings → General → Login Items** (it isn't added by default).
+- To start it at login, turn on **Settings → Open at login** in the menu (off by default).
 
 ---
 
@@ -234,6 +238,8 @@ Change these under **Settings** in the menu. Values are saved to `~/Library/Appl
 | Language | `lang` | Use system language (`auto`) / 한국어 (`ko`) / English (`en`) / 日本語 (`ja`) / 简体中文 (`zh`) / Español (`es`) | System language (Korean for people who used the app before languages were added) |
 | Climb on windows | `windows` | On / Off | On |
 | Show agent work | `activity` | On / Off | On |
+| Check for updates | `updates` | On / Off | On |
+| Open at login | (macOS login items) | On / Off | Off |
 | Answer model | `ask_provider` | Claude / Gemini / GPT | Claude (`claude`) |
 
 You can also edit `settings.json` directly (takes effect after a restart).
@@ -246,6 +252,7 @@ You can also edit `settings.json` directly (takes effect after a restart).
  "windows": true,
  "activity": true,
  "notify": true,
+ "updates": true,
  "lang": "en",
  "ask_provider": "claude"
 }
@@ -388,6 +395,7 @@ Files created at runtime (not in the repository):
 - Everything runs **on your Mac**.
 - Claude Code session logs are **only read**, never sent or stored anywhere. The screen shows little more than tool and file names.
 - The only outgoing traffic is the question you type into Ask, sent to the provider you chose (Anthropic, Google or OpenAI) through its CLI or your API key.
+- With **Check for updates** on, the app asks the GitHub API for the latest release version once a day. Nothing about you or your usage is sent.
 - There are no accounts, sign-ups, analytics, ads or tracking.
 - The only data left behind is the settings file and any API keys in the Keychain. To remove it, delete the `~/Library/Application Support/Claude Buddy` folder and use **Delete API key** in the menu (or delete the `Claude Buddy` items in Keychain Access).
 - Task labels (file names and so on) may be visible while you share your screen. Use the menu bar icon → **Hide character** if needed.

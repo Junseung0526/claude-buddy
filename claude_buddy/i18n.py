@@ -49,6 +49,11 @@ TR = {
     "취소!": ("Canceled!", "キャンセル!", "取消!", "¡Cancelado!"),
     "집중!": ("Focus!", "集中!", "专注!", "¡A concentrarse!"),
     "뿅!": ("Poof!", "ポン!", "噗!", "¡Puf!"),
+    "통과!": ("Passed!", "合格!", "通过!", "¡Pasó!"),
+    "테스트 실패..": ("Tests failed..", "テスト失敗..", "测试失败..", "Fallaron.."),
+    "앗, 에러!": ("Oops, error!", "あっ、エラー!", "哎呀，出错!", "¡Uy, error!"),
+    "새 버전!": ("New version!", "新バージョン!", "新版本!", "¡Nueva versión!"),
+    "{v} 토큰!": ("{v} tokens!", "{v} トークン!", "{v} token!", "¡{v} tokens!"),
     "아야..": ("Ouch..", "いてて..", "哎哟..", "Ay.."),
     "완료!": ("Done!", "完了!", "完成!", "¡Listo!"),
     "어서와요!": ("Welcome back!", "おかえり!", "欢迎回来!", "¡Bienvenido!"),
@@ -96,6 +101,12 @@ TR = {
     # 메뉴
     "{name} API 키를 붙여넣고 Enter ({hint})": ("Paste your {name} API key and press Enter ({hint})", "{name} API キーを貼り付けて Enter ({hint})",
                                          "粘贴 {name} API 密钥后按 Enter（{hint}）", "Pega tu clave API de {name} y pulsa Enter ({hint})"),
+    "새 버전 {v} 받기…": ("Get new version {v}…", "新バージョン {v} を入手…", "获取新版本 {v}…", "Descargar versión {v}…"),
+    "새 버전 확인": ("Check for updates", "アップデートを確認", "检查更新", "Buscar actualizaciones"),
+    "로그인 시 자동 실행": ("Open at login", "ログイン時に起動", "登录时启动", "Abrir al iniciar sesión"),
+    "Claude Buddy 업데이트": ("Claude Buddy update", "Claude Buddy アップデート", "Claude Buddy 更新", "Actualización de Claude Buddy"),
+    "{v} 버전이 나왔어요. 메뉴에서 받을 수 있어요.": ("Version {v} is out. Get it from the menu.", "{v} が公開されました。メニューから入手できます。",
+                                       "{v} 版本已发布，可在菜单中获取。", "Ya salió la versión {v}. Descárgala desde el menú."),
     "질문하기…": ("Ask…", "質問する…", "提问…", "Preguntar…"),
     "사용량 보기…": ("Usage…", "使用量を見る…", "查看用量…", "Ver uso…"),
     "간식 주기": ("Give a snack", "おやつをあげる", "喂零食", "Dar un bocadillo"),
@@ -186,6 +197,10 @@ def localize(label):
 
 def fmt(n):
     """큰 수를 언어에 맞게 짧게: 12.3만 / 12.3万 / 123.4K."""
+    return re.sub(r"\.0(?=\D+$)", "", _fmt(n))  # 157.0K -> 157K
+
+
+def _fmt(n):
     if lang in ("ko", "ja", "zh"):
         man, oku = {"ko": ("만", "억"), "ja": ("万", "億"), "zh": ("万", "亿")}[lang]
         return f"{n / 1e8:.1f}{oku}" if n >= 1e8 else f"{n / 1e4:,.0f}{man}" if n >= 1e7 else f"{n / 1e4:.1f}{man}" if n >= 1e4 else f"{n:,}"
@@ -200,7 +215,7 @@ if __name__ == "__main__":  # 셀프 체크: python -m claude_buddy.i18n
     set_lang("en")
     assert localize("읽는 중 · app.py (120줄부터) · 20초") == "Reading · app.py (from line 120) · 20s"
     assert localize("확인 필요 · 권한 확인") == "Needs you · Permission needed"
-    assert t("{n}분 걸린 작업을 마쳤어요", n=3) == "Finished a 3-minute task" and fmt(12_300) == "12.3K"
+    assert t("{n}분 걸린 작업을 마쳤어요", n=3) == "Finished a 3-minute task" and fmt(12_300) == "12.3K" and fmt(157_000) == "157K" and fmt(3_000_000) == "3M"
     set_lang("ja")
     assert localize("도구 실행 중 · 3단계 · 2분") == "ツール実行中 · ステップ 3 · 2分" and fmt(21_300_000) == "2,130万"
     set_lang("ko")

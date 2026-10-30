@@ -74,6 +74,19 @@ KINDS = (("읽는", "read"), ("작성 중", "edit"), ("수정 중", "edit"), ("�
          ("검색 중", "search"), ("웹", "web"), ("계획", "plan"), ("답변 작성", "answer"), ("서브에이전트", "agent"))
 
 
+TEST_CMD = re.compile(r"\b(pytest|py\.test|unittest|jest|vitest|mocha|rspec|phpunit|ctest|(go|cargo|swift|mvn|gradlew?|xcodebuild|make|bun|deno|yarn|(npm|pnpm)( run)?) test)\b")
+
+
+def result_event(is_test, is_error, content):
+    """명령 결과 -> 캐릭터 반응: "test_pass"·"test_fail"·"error"·None. 사용자가 거절한 건 반응하지 않음."""
+    text = content if isinstance(content, str) else " ".join(b.get("text", "") for b in content or [] if isinstance(b, dict))
+    if is_error and not text.startswith("Exit code"):
+        return None
+    if is_test:
+        return "test_fail" if is_error else "test_pass"
+    return "error" if is_error else None
+
+
 def label_kind(label):
     """작업 라벨로 어떤 동작을 보여줄지 정함. 모르는 건 생각 중."""
     return next((k for prefix, k in KINDS if (label or "").startswith(prefix)), "think")
@@ -95,6 +108,7 @@ class Tail:
         self.skip_partial = self.off > 0
         self.label, self.pending, self.last = None, {}, 0.0  # pending: 결과를 기다리는 도구 id -> 이름
         self.ended = False  # 답변을 마쳤다는 기록(end_turn)을 봤는지
+        self.tests, self.events = {}, []  # Bash 도구 id -> 테스트 명령인지 / 앱이 가져갈 반응 ("error" 등)
         self.since = time.time()  # 지금 라벨이 붙은 시각
 
     @property
@@ -148,13 +162,20 @@ class Tail:
             elif isinstance(content, list):
                 for b in content:
                     if b.get("type") == "tool_result":
-                        self.pending.pop(b.get("tool_use_id"), None)
+                        tid = b.get("tool_use_id")
+                        self.pending.pop(tid, None)
+                        if tid in self.tests and time.time() - ts < 30:  # 예전 기록을 처음 읽을 때는 반응 안 함
+                            ev = result_event(self.tests.pop(tid), b.get("is_error"), b.get("content"))
+                            if ev:
+                                self.events.append(ev)
                         self.label, self.last = "생각 중", ts
         elif t == "assistant" and isinstance(content, list):
             for b in content:
                 bt = b.get("type")
                 if bt == "tool_use":
                     self.pending[b.get("id")] = b.get("name", "")
+                    if b.get("name") == "Bash":
+                        self.tests[b.get("id")] = bool(TEST_CMD.search((b.get("input") or {}).get("command", "")))
                     self.label = tool_label(b.get("name", ""), b.get("input") or {})
                 elif bt == "thinking":
                     self.label = "생각 중"
@@ -337,6 +358,27 @@ class Activity:
             return self.main.text(now) if self.main.label else "생각 중"
         return DONE_LABEL if now < self.done_label_until else None
 
+    def take_events(self):
+        """메인·서브에이전트 기록에서 나온 반응을 꺼내고 비움."""
+        tails = [self.main] + [s["tail"] for s in self.subs.values() if s["tail"]] if self.main else []
+        evs = [e for tl in tails for e in tl.events]
+        for tl in tails:
+            tl.events.clear()
+        return evs
+
     def active_subs(self):
         """작은 캐릭터로 보여줄 대상: Claude 서브에이전트 + 다른 에이전트."""
         return {**{aid: s for aid, s in self.subs.items() if s["tail"]}, **self.others}
+
+
+if __name__ == "__main__":  # 셀프 체크: python -m claude_buddy.activity
+    for cmd in ("pytest -q", "python -m pytest tests", "npm test", "npm run test", "pnpm test", "cargo test", "go test ./...", "make test"):
+        assert TEST_CMD.search(cmd), cmd
+    for cmd in ("ls", "git status", "npm install", "python app.py"):
+        assert not TEST_CMD.search(cmd), cmd
+    assert result_event(True, False, "3 passed") == "test_pass"
+    assert result_event(True, True, "Exit code 1\nFAILED") == "test_fail"
+    assert result_event(False, True, [{"type": "text", "text": "Exit code 2"}]) == "error"
+    assert result_event(False, True, "The user doesn't want to proceed") is None
+    assert result_event(False, False, "ok") is None
+    print("ok")

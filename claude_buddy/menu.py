@@ -1,13 +1,26 @@
 """메뉴 동작을 받는 Objective-C 대상(Ctl)과 메뉴 구성."""
 
+import functools
+import sys
 import time
 
 import objc
-from AppKit import NSApp, NSMenu, NSMenuItem
-from Foundation import NSObject
+from AppKit import NSApp, NSMenu, NSMenuItem, NSWorkspace
+from Foundation import NSObject, NSURL
 
 from . import i18n, llm
+from .config import RELEASES
 from .i18n import localize, t
+
+
+@functools.cache
+def login_item():
+    """로그인 시 자동 실행 (SMAppService). 소스로 실행 중이면 None (등록할 앱 번들이 없음)."""
+    if not getattr(sys, "frozen", False):
+        return None
+    ns = {}
+    objc.loadBundle("ServiceManagement", ns, bundle_path="/System/Library/Frameworks/ServiceManagement.framework")
+    return objc.lookUpClass("SMAppService")
 
 
 class Ctl(NSObject):
@@ -90,6 +103,23 @@ class Ctl(NSObject):
     def toggleActivity_(self, s):
         self.b.set_cfg("activity", not self.b.cfg["activity"])
 
+    def toggleUpdates_(self, s):
+        self.b.set_cfg("updates", not self.b.cfg["updates"])
+
+    def openRelease_(self, s):
+        NSWorkspace.sharedWorkspace().openURL_(NSURL.URLWithString_(RELEASES))
+
+    def toggleLogin_(self, s):
+        svc = login_item()
+        app = svc.mainAppService()
+        if app.status() == 1:  # 켜져 있음
+            app.unregisterAndReturnError_(None)
+        else:
+            app.registerAndReturnError_(None)
+            if app.status() == 2:  # 사용자 승인이 필요하면 시스템 설정을 열어 줌
+                svc.openSystemSettingsLoginItems()
+        self.b.main.emote("OK!" if app.status() in (0, 1) else t("저장 실패"))
+
     def quit_(self, s):
         NSApp().terminate_(None)
 
@@ -123,6 +153,9 @@ def build_menu(b, m, status=False):
                 it.setEnabled_(False)
                 m.addItem_(it)
         m.addItem_(NSMenuItem.separatorItem())
+    if b.update_tag:
+        m.addItem_(item(t("새 버전 {v} 받기…", v=b.update_tag), "openRelease:"))
+        m.addItem_(NSMenuItem.separatorItem())
     m.addItem_(item(t("질문하기…"), "ask:"))
     m.addItem_(item(t("사용량 보기…"), "usage:"))
     m.addItem_(NSMenuItem.separatorItem())
@@ -148,6 +181,8 @@ def build_menu(b, m, status=False):
         item(t("알림 (확인 필요·긴 작업 완료)"), "toggleNotify:", on=c["notify"]),
         item(t("창 위로 올라가기"), "toggleWindows:", on=c["windows"]),
         item(t("에이전트 작업 보기"), "toggleActivity:", on=c["activity"]),
+        item(t("새 버전 확인"), "toggleUpdates:", on=c["updates"]),
+        *([item(t("로그인 시 자동 실행"), "toggleLogin:", on=login_item().mainAppService().status() == 1)] if login_item() else []),
         sub(t("언어") + ("" if i18n.lang == "en" else " / Language"), [item(t("시스템 설정 따르기"), "setLang:", 0, c["lang"] == "auto")]
             + [item(name, "setLang:", i + 1, c["lang"] == k) for i, (k, name) in enumerate(i18n.LANGS.items())]),
     ]))

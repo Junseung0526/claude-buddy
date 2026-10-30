@@ -94,6 +94,13 @@ def post_json(url, body, headers):
         return json.loads(r.read())
 
 
+def get_json(url):
+    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "Claude-Buddy"})
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    with urllib.request.urlopen(req, timeout=15, context=ctx) as r:
+        return json.loads(r.read())
+
+
 def ask(provider, system, question):
     """답변 글자, 실패하면 None (부르는 쪽이 로컬 검색 결과로 대신함). CLI가 먼저, 안 되면 API 키."""
     text = ask_cli(provider, system, question)
