@@ -2,6 +2,12 @@
 
 All notable changes to Claude Buddy. Downloads are on the [Releases](https://github.com/Junseung0526/claude-buddy/releases) page.
 
+## [1.7.0] - 2026-10-30
+### Added
+- Settings window (menu → Settings… or ⌘,) with General, Appearance, Behavior, Ask and System sections. Replaces the old Settings submenu.
+- Character customization: 7 colors, 5 hats (cap, crown, party hat, beanie, bow) and glasses.
+- Other Claude Code sessions running at the same time appear as small characters labelled with their project name. Double-click one to open its project folder.
+
 ## [1.6.0] - 2026-10-30
 ### Added
 - Reactions to command and test results: "Passed!" with a jump, "Tests failed.." with a sad face, and "Oops, error!" for failed commands (at most every 20 seconds). Declined commands are ignored.

@@ -80,6 +80,7 @@ A pixel-art character inspired by the Claude mascot walks along the bottom of yo
   ![Usage window (sample data)](docs/en/usage.png)
 - **A small character appears for each running subagent**, up to six. Each shows its own task above its head and works next to the main character. When a subagent finishes, it shouts "Done!", jumps and walks off screen.
 - Click a small character to see that subagent's task and current status in a speech bubble.
+- **Other Claude Code sessions running at the same time** get their own small orange character, labelled with the project name. Double-click it to open that project's folder.
 - **Other AI agents show up too.** While one is working, its own character appears next to the main one and shows its task, then leaves when done. No API key is needed; the app only reads the activity logs those tools leave on your Mac.
 
   | Agent | Character | Logs it reads | What it shows |
@@ -227,7 +228,7 @@ Pushing a version tag (such as `v1.6.0`) makes GitHub Actions build the app and 
 
 ## Settings
 
-Change these under **Settings** in the menu. Values are saved to `~/Library/Application Support/Claude Buddy/settings.json` and kept for the next launch.
+Change these in the **Settings** window (menu → **Settings…** or `⌘,`). Values are saved to `~/Library/Application Support/Claude Buddy/settings.json` and kept for the next launch.
 
 | Setting | Key | Options | Default |
 |---|---|---|---|
@@ -239,6 +240,9 @@ Change these under **Settings** in the menu. Values are saved to `~/Library/Appl
 | Climb on windows | `windows` | On / Off | On |
 | Show agent work | `activity` | On / Off | On |
 | Check for updates | `updates` | On / Off | On |
+| Color | `color` | Orange / Pink / Mint / Blue / Purple / Yellow / Gray | Orange |
+| Hat | `hat` | None / Cap / Crown / Party hat / Beanie / Bow | None |
+| Glasses | `glasses` | On / Off | Off |
 | Open at login | (macOS login items) | On / Off | Off |
 | Answer model | `ask_provider` | Claude / Gemini / GPT | Claude (`claude`) |
 

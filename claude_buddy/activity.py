@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from .config import AGY_LOGS, CODEX_SESSIONS, PROJECTS
+from .usage import project_name
 
 
 DONE_LABEL = "작업 완료"
@@ -110,6 +111,7 @@ class Tail:
         self.ended = False  # 답변을 마쳤다는 기록(end_turn)을 봤는지
         self.tests, self.events = {}, []  # Bash 도구 id -> 테스트 명령인지 / 앱이 가져갈 반응 ("error" 등)
         self.since = time.time()  # 지금 라벨이 붙은 시각
+        self.cwd = None  # 세션이 돌고 있는 프로젝트 폴더
 
     @property
     def label(self):
@@ -153,6 +155,7 @@ class Tail:
 
     def feed(self, o):
         t, msg, ts = o.get("type"), o.get("message") or {}, stamp(o)
+        self.cwd = o.get("cwd") or self.cwd
         content = msg.get("content")
         if t in ("user", "assistant"):
             self.ended = False
@@ -285,7 +288,9 @@ class Activity:
 
     def poll(self, now):
         self.poll_others(now)
-        path = newest(PROJECTS.glob("*/*.jsonl"), now)
+        sessions = list(PROJECTS.glob("*/*.jsonl"))
+        path = newest(sessions, now)
+        self.poll_sessions(sessions, path, now)
         if not path:
             self.main = None
             return
@@ -326,6 +331,25 @@ class Activity:
                     quiet = True
                 if quiet:
                     s["finished"] = True  # 오래 조용하거나 사라지면 끝난 걸로
+
+    def poll_sessions(self, paths, main_path, now):
+        """메인 말고 동시에 돌고 있는 Claude Code 세션(다른 터미널·프로젝트)도 작은 캐릭터로."""
+        live = set()
+        for p in paths:
+            try:
+                if p == main_path or now - p.stat().st_mtime > QUIET_SEC:
+                    continue
+            except OSError:
+                continue
+            key = "session:" + p.stem
+            live.add(key)
+            o = self.others.get(key)
+            if not o:
+                o = self.others[key] = {"tail": Tail(p, backlog=50_000), "desc": project_name(p.parent.name), "kind": "claude", "finished": True}
+            o["tail"].poll()
+            o["finished"] = not o["tail"].busy(now)
+        for key in [k for k in self.others if k.startswith("session:") and k not in live]:
+            del self.others[key]
 
     def poll_others(self, now):
         for key, name, kind, find, cls in OTHER_AGENTS:

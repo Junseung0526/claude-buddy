@@ -15,7 +15,7 @@ AGY_LOGS = [Path(p) for p in os.environ.get("BUDDY_AGY", "").split(":") if p] or
 RELEASES = "https://github.com/Junseung0526/claude-buddy/releases/latest"
 RELEASES_API = "https://api.github.com/repos/Junseung0526/claude-buddy/releases/latest"
 
-DEFAULTS = {"scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True, "notify": True, "updates": True, "lang": "auto", "ask_provider": "claude"}
+DEFAULTS = {"scale": 6, "speed": 55, "sound": True, "windows": True, "activity": True, "notify": True, "updates": True, "color": "#D97757", "hat": "none", "glasses": False, "lang": "auto", "ask_provider": "claude"}
 SHOW_SEC = 25
 GRAVITY = 2200.0
 BUBBLE_W = 380

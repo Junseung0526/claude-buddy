@@ -80,6 +80,7 @@ Un personaje en pixel art inspirado en la mascota de Claude camina por la parte 
   ![Ventana de uso (datos de ejemplo)](docs/es/usage.png)
 - **Aparece un personaje pequeño por cada subagente en marcha**, hasta seis. Cada uno muestra su tarea sobre la cabeza y trabaja junto al personaje principal. Cuando el subagente termina, grita "¡Listo!", salta y se va caminando fuera de la pantalla.
 - Haz clic en un personaje pequeño para ver en un globo la tarea y el estado actual de ese subagente.
+- **Otras sesiones de Claude Code abiertas a la vez** tienen su propio personaje naranja pequeño con el nombre del proyecto. Haz doble clic para abrir la carpeta de ese proyecto.
 - **También aparecen otros agentes de IA.** Mientras uno trabaja, su propio personaje aparece junto al principal y muestra su tarea, y se va al terminar. No hace falta clave API: la app solo lee los registros de actividad que esas herramientas dejan en tu Mac.
 
   | Agente | Personaje | Registros que lee | Qué muestra |
@@ -227,7 +228,7 @@ Al subir una etiqueta de versión (como `v1.6.0`), GitHub Actions compila la app
 
 ## Ajustes
 
-Cámbialos en **Ajustes** del menú. Los valores se guardan en `~/Library/Application Support/Claude Buddy/settings.json` y se conservan para el siguiente inicio.
+Cámbialos en la ventana de **Ajustes** (menú → **Ajustes…** o `⌘,`). Los valores se guardan en `~/Library/Application Support/Claude Buddy/settings.json` y se conservan para el siguiente inicio.
 
 | Ajuste | Clave | Opciones | Por defecto |
 |---|---|---|---|
@@ -239,6 +240,9 @@ Cámbialos en **Ajustes** del menú. Los valores se guardan en `~/Library/Applic
 | Subir a las ventanas | `windows` | Sí / No | Sí |
 | Mostrar trabajo de agentes | `activity` | Sí / No | Sí |
 | Buscar actualizaciones | `updates` | Sí / No | Sí |
+| Color | `color` | Naranja / Rosa / Menta / Azul / Morado / Amarillo / Gris | Naranja |
+| Sombrero | `hat` | Ninguno / Gorra / Corona / Gorro de fiesta / Gorro / Lazo | Ninguno |
+| Gafas | `glasses` | Sí / No | No |
 | Abrir al iniciar sesión | (ítems de inicio de macOS) | Sí / No | No |
 | Modelo de respuesta | `ask_provider` | Claude / Gemini / GPT | Claude (`claude`) |
 

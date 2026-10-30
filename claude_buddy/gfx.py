@@ -25,7 +25,9 @@ HEART_PX = [".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."]
 # 다른 에이전트 캐릭터: 몸 색, 머리 위 표식(픽셀), 표식 색
 STAR_PX = ["...X...", "...X...", "..XXX..", "XXXXXXX", "..XXX..", "...X...", "...X..."]
 RING_PX = [".XXX.", "X...X", "X...X", "X...X", ".XXX."]
+CLAUDE_PX = ["X.X.X", ".XXX.", "XXXXX", ".XXX.", "X.X.X"]
 AGENT_LOOKS = {
+    "claude": ("#D97757", CLAUDE_PX, "#9C4A2F"),  # 동시에 도는 다른 Claude Code 세션: 주황 몸 + 별표
     "gemini": ("#4C8DF6", STAR_PX, "#B9A6FF"),  # Antigravity·Gemini: 파란 몸 + 반짝이
     "gpt": ("#10A37F", RING_PX, "#FFFFFF"),     # Codex·GPT: 초록 몸 + 고리
 }

@@ -1,26 +1,16 @@
 """메뉴 동작을 받는 Objective-C 대상(Ctl)과 메뉴 구성."""
 
-import functools
-import sys
 import time
 
 import objc
-from AppKit import NSApp, NSMenu, NSMenuItem, NSWorkspace
+from AppKit import NSApp, NSMenuItem, NSWorkspace
 from Foundation import NSObject, NSURL
+from PyObjCTools import AppHelper
 
-from . import i18n, llm
+from . import i18n, llm, settings
 from .config import RELEASES
 from .i18n import localize, t
-
-
-@functools.cache
-def login_item():
-    """로그인 시 자동 실행 (SMAppService). 소스로 실행 중이면 None (등록할 앱 번들이 없음)."""
-    if not getattr(sys, "frozen", False):
-        return None
-    ns = {}
-    objc.loadBundle("ServiceManagement", ns, bundle_path="/System/Library/Frameworks/ServiceManagement.framework")
-    return objc.lookUpClass("SMAppService")
+from .settings import login_item
 
 
 class Ctl(NSObject):
@@ -43,9 +33,6 @@ class Ctl(NSObject):
     def ask_(self, s):
         self.b.open_ask()
 
-    def setProvider_(self, s):
-        self.b.set_cfg("ask_provider", list(llm.PROVIDERS)[s.tag()])
-
     def setKey_(self, s):
         name, _, _, _, hint = llm.PROVIDERS[self.b.provider()]
         self.b.open_input(t("{name} API 키를 붙여넣고 Enter ({hint})", name=name, hint=hint), "keySubmit:", secure=True)
@@ -53,9 +40,45 @@ class Ctl(NSObject):
     def keySubmit_(self, s):
         self.b.submit_key(s.stringValue())
 
-    def deleteKey_(self, s):
+    def prefDeleteKey_(self, s):
         llm.delete_api_key(self.b.provider())
         self.b.main.emote(t("키 삭제"))
+        self.later_refresh()
+
+    # ----- 설정 창
+    def later_refresh(self):
+        AppHelper.callAfter(settings.refresh, self.b)  # 컨트롤의 동작이 끝난 뒤 창을 다시 그림
+
+    def openSettings_(self, s):
+        settings.open_settings(self.b)
+
+    def prefToggle_(self, s):
+        self.b.set_cfg(settings.TOGGLES[s.tag()], s.state() == 1)
+
+    def prefScale_(self, s):
+        self.b.set_cfg("scale", settings.SIZES[s.selectedSegment()])
+
+    def prefSpeed_(self, s):
+        self.b.set_cfg("speed", settings.SPEEDS[s.selectedSegment()])
+
+    def prefLang_(self, s):
+        i = s.indexOfSelectedItem()
+        self.b.set_cfg("lang", "auto" if i == 0 else list(i18n.LANGS)[i - 1])
+        self.later_refresh()
+
+    def prefColor_(self, s):
+        self.b.set_cfg("color", list(settings.COLORS)[s.indexOfSelectedItem()])
+
+    def prefHat_(self, s):
+        self.b.set_cfg("hat", list(settings.HATS)[s.indexOfSelectedItem()])
+
+    def prefProvider_(self, s):
+        self.b.set_cfg("ask_provider", list(llm.PROVIDERS)[s.indexOfSelectedItem()])
+        self.later_refresh()
+
+    def prefLogin_(self, s):
+        self.toggleLogin_(s)
+        self.later_refresh()
 
     def askSubmit_(self, s):
         self.b.submit_ask(s.stringValue())
@@ -79,32 +102,8 @@ class Ctl(NSObject):
     def toggleHidden_(self, s):
         self.b.manual_hidden = not self.b.manual_hidden
 
-    def setScale_(self, s):
-        self.b.set_cfg("scale", s.tag())
-
-    def setSpeed_(self, s):
-        self.b.set_cfg("speed", s.tag())
-
     def usage_(self, s):
         self.b.open_usage()
-
-    def setLang_(self, s):
-        self.b.set_cfg("lang", "auto" if s.tag() == 0 else list(i18n.LANGS)[s.tag() - 1])
-
-    def toggleNotify_(self, s):
-        self.b.set_cfg("notify", not self.b.cfg["notify"])
-
-    def toggleSound_(self, s):
-        self.b.set_cfg("sound", not self.b.cfg["sound"])
-
-    def toggleWindows_(self, s):
-        self.b.set_cfg("windows", not self.b.cfg["windows"])
-
-    def toggleActivity_(self, s):
-        self.b.set_cfg("activity", not self.b.cfg["activity"])
-
-    def toggleUpdates_(self, s):
-        self.b.set_cfg("updates", not self.b.cfg["updates"])
 
     def openRelease_(self, s):
         NSWorkspace.sharedWorkspace().openURL_(NSURL.URLWithString_(RELEASES))
@@ -133,14 +132,6 @@ def build_menu(b, m, status=False):
         it.setState_(1 if on else 0)
         return it
 
-    def sub(title, items):
-        s = NSMenu.alloc().init()
-        for it in items:
-            s.addItem_(it)
-        mi = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(title, None, "")
-        mi.setSubmenu_(s)
-        return mi
-
     label_now = b.activity.label(time.time()) if b.cfg["activity"] else None
     if label_now:
         head = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(f"Claude Code: {localize(label_now)}", None, "")
@@ -165,27 +156,9 @@ def build_menu(b, m, status=False):
     m.addItem_(item(t("집중 타이머 취소") if b.focus_until else t("집중 타이머 (25분)"), "focus:"))
     m.addItem_(item(t("30분 동안 쉬기"), "snooze:"))
     m.addItem_(NSMenuItem.separatorItem())
-    c = b.cfg
-    # 질문하기 답변 모델과 그 API 키 (CLI가 없을 때만 씀, 키체인에 저장)
-    prov = b.provider()
-    name = llm.PROVIDERS[prov][0]
-    has_key = llm.api_key(prov) is not None
-    ask_items = [sub(t("질문 답변 모델"), [item(f"{v[0]} ({v[1]})", "setProvider:", i, k == prov)
-                                   for i, (k, v) in enumerate(llm.PROVIDERS.items())]),
-                item(t("{name} API 키 변경…" if has_key else "{name} API 키 설정…", name=name), "setKey:")]
-    ask_items += [item(t("{name} API 키 삭제", name=name), "deleteKey:")] if has_key else []
-    m.addItem_(sub(t("설정"), ask_items + [
-        sub(t("크기"), [item(n, "setScale:", v, c["scale"] == v) for n, v in ((t("작게"), 4), (t("보통"), 6), (t("크게"), 8))]),
-        sub(t("걷는 속도"), [item(n, "setSpeed:", v, c["speed"] == v) for n, v in ((t("느리게"), 35), (t("보통"), 55), (t("빠르게"), 85))]),
-        item(t("소리"), "toggleSound:", on=c["sound"]),
-        item(t("알림 (확인 필요·긴 작업 완료)"), "toggleNotify:", on=c["notify"]),
-        item(t("창 위로 올라가기"), "toggleWindows:", on=c["windows"]),
-        item(t("에이전트 작업 보기"), "toggleActivity:", on=c["activity"]),
-        item(t("새 버전 확인"), "toggleUpdates:", on=c["updates"]),
-        *([item(t("로그인 시 자동 실행"), "toggleLogin:", on=login_item().mainAppService().status() == 1)] if login_item() else []),
-        sub(t("언어") + ("" if i18n.lang == "en" else " / Language"), [item(t("시스템 설정 따르기"), "setLang:", 0, c["lang"] == "auto")]
-            + [item(name, "setLang:", i + 1, c["lang"] == k) for i, (k, name) in enumerate(i18n.LANGS.items())]),
-    ]))
+    pref = item(t("설정…"), "openSettings:")
+    pref.setKeyEquivalent_(",")
+    m.addItem_(pref)
     if status:
         m.addItem_(item(t("캐릭터 보이기") if b.manual_hidden else t("캐릭터 숨기기"), "toggleHidden:"))
     m.addItem_(NSMenuItem.separatorItem())

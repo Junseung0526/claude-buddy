@@ -103,6 +103,17 @@ def draw_critter(c, s):
         fill(bx + bw / 2 - P * 0.35, by + bh * 0.2, P * 0.7, P * 0.7, EYE)
     elif face == "yawn":  # 하품하는 입
         fill(bx + bw / 2 - P * 0.5, by + bh * 0.12, P, P * 1.1, EYE)
+    if getattr(c, "glasses", False):
+        g, gw = max(1.0, P * 0.25), P * 1.9  # 테 두께, 알 크기 (눈이 움직여도 테는 얼굴에 고정)
+        gy = by + bh * 0.55 - P * 0.35
+        for cx in (3, 8):
+            gx = bx + (cx - 2) * P * k - P * 0.45
+            for x, y, w, h in ((gx, gy, gw, g), (gx, gy + gw - g, gw, g), (gx, gy, g, gw), (gx + gw - g, gy, g, gw)):
+                fill(x, y, w, h, EYE)
+        fill(bx + 1 * P * k + P * 1.45, gy + gw * 0.6, (5 * P * k) - P * 1.9, g, EYE)  # 코걸이
+    hat = getattr(c, "hat", "none")
+    if hat in HAT_PX:
+        draw_hat(hat, bx + bw / 2, by + bh, P, P * k, c.dir)
     if s.get("prop"):
         draw_prop(c, s["prop"], bx, by, bw, bh)
     if getattr(c, "mark", None):  # 다른 에이전트 표식 (머리 위)
@@ -129,7 +140,29 @@ def draw_critter(c, s):
         if size.width > W:  # 긴 말(번역)은 창 밖으로 잘리지 않게 글자를 줄임
             attrs[NSFontAttributeName] = NSFont.boldSystemFontOfSize_(max(10, 2.5 * P) * W * 0.9 / size.width)
             size = ns.sizeWithAttributes_(attrs)
-        ns.drawAtPoint_withAttributes_((max(0, min(bx + bw + P * 0.5 - size.width / 2, W - size.width)),by + bh + P * 0.4 + s["emoteRise"]), attrs)
+        lift = min(HAT_H.get(getattr(c, "hat", "none"), 0), 2) * P  # 모자 위로
+        ns.drawAtPoint_withAttributes_((max(0, min(bx + bw + P * 0.5 - size.width / 2, W - size.width)), by + bh + P * 0.4 + lift + s["emoteRise"]), attrs)
+
+
+# 모자: (가로 시작, 세로 시작, 너비, 높이, 색) - 가로는 몸통 가운데 기준 P*k, 세로는 머리 위 기준 P 단위
+RED, RED_D, GOLD, BLUE, BLUE_D, PINK2, WHITE = "#D94F4F", "#A93A3A", "#F2C14E", "#5B7FC7", "#41609E", "#E26D8E", "#FFFFFF"
+HAT_PX = {
+    "cap": [(-2.6, -0.1, 5.2, 1.6, RED), (-0.4, 1.5, 0.8, 0.4, RED_D), (1.6, -0.1, 3.2, 0.5, RED_D)],
+    "crown": [(-2.4, -0.1, 4.8, 1.0, GOLD), (-2.4, 0.9, 1.0, 0.9, GOLD), (-0.5, 0.9, 1.0, 0.9, GOLD), (1.4, 0.9, 1.0, 0.9, GOLD),
+              (-0.35, 0.2, 0.7, 0.55, RED)],
+    "party": [(-2.2 + 0.45 * i, -0.1 + 0.8 * i, 4.4 - 0.9 * i, 0.8, "#6B9BD8" if i % 2 == 0 else "#F2A0A8") for i in range(5)]
+             + [(-0.5, 3.9, 1.0, 0.9, GOLD)],
+    "beanie": [(-3.0, -0.1, 6.0, 1.6, BLUE), (-2.2, 1.5, 4.4, 0.5, BLUE), (-3.2, -0.1, 6.4, 0.6, BLUE_D), (-0.6, 2.0, 1.2, 0.9, WHITE)],
+    "bow": [(1.2, -0.1, 1.2, 1.4, PINK2), (2.8, -0.1, 1.2, 1.4, PINK2), (2.3, 0.2, 0.6, 0.8, "#B94E6C")],
+}
+HAT_H = {k: max(y + h for _, y, _, h, _ in v) for k, v in HAT_PX.items()}
+
+
+def draw_hat(hat, cx, top, P, uk, d):
+    """d가 -1(왼쪽을 봄)이면 좌우를 뒤집어 챙·리본이 보는 쪽을 따라감."""
+    for x, y, w, h, col in HAT_PX[hat]:
+        left = cx + x * uk if d >= 0 else cx - (x + w) * uk
+        fill(left, top + y * P, w * uk, h * P, rgb(col))
 
 
 PAPER, INK, SCREEN, PROMPT = rgb("#FFFFFF"), rgb("#9AA3AD"), rgb("#2B2D31"), rgb("#4ADE80")

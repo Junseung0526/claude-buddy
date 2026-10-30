@@ -9,20 +9,20 @@ import time
 
 from AppKit import (
     NSApp, NSAppearance, NSAppearanceNameAqua, NSBackingStoreBuffered, NSColor, NSEvent, NSFloatingWindowLevel, NSFont, NSMakeRect,
-    NSBundle, NSMenu, NSSecureTextField, NSStatusBar, NSTextField, NSWindow, NSWindowStyleMaskClosable, NSWindowStyleMaskTitled,
+    NSBundle, NSMenu, NSSecureTextField, NSStatusBar, NSTextField, NSWindow, NSWindowStyleMaskClosable, NSWindowStyleMaskTitled, NSWorkspace,
 )
-from Foundation import NSRunLoop, NSRunLoopCommonModes, NSTimer
+from Foundation import NSRunLoop, NSRunLoopCommonModes, NSTimer, NSURL
 from PyObjCTools import AppHelper
 from Quartz import (
     CGEventSourceSecondsSinceLastEventType, kCGAnyInputEventType, kCGEventSourceStateHIDSystemState,
 )
 
-from . import i18n, llm, usage
+from . import i18n, llm, settings, usage
 from .i18n import localize, t
 from .activity import Activity, label_kind
 from .config import BUBBLE_W, MAX_MINIS, RELEASES_API, SHOW_SEC, save_settings
 from .critter import Critter
-from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, ORANGE_HEX, floating_window, label, notify, play, rgb
+from .gfx import AGENT_LOOKS, GRAY, HEART, KeyWindow, MINI_COLORS, ORANGE, floating_window, label, notify, play, rgb, tone
 from .icon import icon_image
 from .menu import Ctl
 from .toy import TOY, Toy
@@ -47,7 +47,7 @@ class Buddy:
         self.ctl = Ctl.alloc().initWithBuddy_(self)
         self.world = World(cfg)
         v0 = self.world.vfs[0]
-        self.main = Critter(self, self.world, cfg["scale"], random.uniform(v0.origin.x, v0.origin.x + v0.size.width - 16 * cfg["scale"]), ORANGE_HEX)
+        self.main = Critter(self, self.world, cfg["scale"], random.uniform(v0.origin.x, v0.origin.x + v0.size.width - 16 * cfg["scale"]), cfg["color"])
         self.minis = {}  # agent id -> Critter
         self.mini_chips = {}
         self.chip = Chip(11)
@@ -75,6 +75,32 @@ class Buddy:
         self.status.setMenu_(menu)
         self.timer, self.fps = None, 0
         self.set_rate(60)
+        self.apply_look()
+        self.set_main_menu()
+
+    def activate(self):
+        try:
+            NSApp().activate()
+        except AttributeError:
+            NSApp().activateIgnoringOtherApps_(True)
+
+    def set_main_menu(self):
+        """앱이 앞에 있을 때 ⌘, (설정)·⌘W (창 닫기)·⌘Q (종료)가 듣도록."""
+        app_menu = NSMenu.alloc().init()
+        for title, sel, key, target in ((t("설정…"), "openSettings:", ",", self.ctl), (t("닫기"), "performClose:", "w", None),
+                                        (t("종료"), "quit:", "q", self.ctl)):
+            it = app_menu.addItemWithTitle_action_keyEquivalent_(title, sel, key)
+            it.setTarget_(target)
+        root = NSMenu.alloc().init()
+        root.addItemWithTitle_action_keyEquivalent_("Claude Buddy", None, "").setSubmenu_(app_menu)
+        NSApp().setMainMenu_(root)
+
+    def apply_look(self):
+        """설정의 색·모자·안경을 메인 캐릭터에."""
+        c, col = self.main, self.cfg["color"]
+        c.cols = (rgb(col), rgb(tone(col, 1.25)), rgb(tone(col, 0.82)))
+        c.hat, c.glasses = self.cfg["hat"], self.cfg["glasses"]
+        c.drawn_key = None  # 모습이 바뀌었으니 다시 그리게
 
     def set_rate(self, fps):
         """배터리: 움직일 때만 60fps, 가만히 있으면 20fps, 숨었으면 2fps."""
@@ -105,6 +131,9 @@ class Buddy:
         if key == "lang":
             i18n.set_lang(val)
             self.chip.text = None  # 칩을 새 언어로 다시 그리게
+            self.set_main_menu()
+        if key in ("color", "hat", "glasses"):
+            self.apply_look()
         if key == "activity" and not val:
             self.chip.close()
             for aid in list(self.minis):
@@ -188,7 +217,11 @@ class Buddy:
     def press(self, c, m, clicks):
         self.grab = (c, (m.x - c.x, m.y - c.y), [(time.time(), m.x, m.y)], False)
         if clicks == 2:
-            self.pet(c)
+            s = c is not self.main and self.activity.sub(next((a for a, v in self.minis.items() if v is c), None))
+            if s and s["tail"].cwd:  # 다른 세션 캐릭터: 그 프로젝트 폴더 열기 (터미널 창 정보는 로그에 없음)
+                NSWorkspace.sharedWorkspace().openURL_(NSURL.fileURLWithPath_(s["tail"].cwd))
+            else:
+                self.pet(c)
 
     def drag(self, c, m):
         if not self.grab:
@@ -338,7 +371,8 @@ class Buddy:
             s = self.activity.sub(aid)
             chip = self.mini_chips.get(aid)
             if chip:
-                chip.set(s["tail"].text(now) if s and not mc.done_at else None)
+                text = s and not mc.done_at and s["tail"].text(now)
+                chip.set(f"{s['desc']} · {text}" if text and s.get("kind") == "claude" else text or None)  # 다른 세션은 프로젝트 이름도
                 mc.work_kind = label_kind(s["tail"].label) if s and not mc.done_at else None
                 chip.place(mc.cx, mc.y + mc.H, mc.state != "held")
 
@@ -588,10 +622,7 @@ class Buddy:
         self.usage_win.setTitle_(t("Claude Code 사용량"))
         self.usage_win.contentView().setData_(usage.summary())  # 열 때마다 새로 셈 (새 줄만 읽어서 빠름)
         self.usage_win.makeKeyAndOrderFront_(None)
-        try:
-            NSApp().activate()
-        except AttributeError:
-            NSApp().activateIgnoringOtherApps_(True)
+        self.activate()
 
     # ----- 물어보기
     def provider(self):
@@ -630,10 +661,7 @@ class Buddy:
         bv.addSubview_(field)
         win.makeKeyAndOrderFront_(None)
         win.makeFirstResponder_(field)
-        try:
-            NSApp().activate()
-        except AttributeError:
-            NSApp().activateIgnoringOtherApps_(True)
+        self.activate()
         self.ask_win = win
         c.state, c.state_until = "look", time.time() + 5
 
@@ -644,6 +672,7 @@ class Buddy:
         if key.strip():
             ok = llm.save_api_key(self.provider(), key)
             self.main.emote(t("키 저장!") if ok else t("저장 실패"), GRAY if not ok else ORANGE)
+            settings.refresh(self)
 
     def submit_ask(self, q):
         if self.ask_win:
