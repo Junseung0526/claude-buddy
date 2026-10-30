@@ -2,6 +2,10 @@
 
 All notable changes to Claude Buddy. Downloads are on the [Releases](https://github.com/Junseung0526/claude-buddy/releases) page.
 
+## [1.5.1] - 2026-10-30
+### Fixed
+- Speech text above the character (such as "Following you!") was cut off at the edge in English and other languages. Long text now shrinks to fit at every size.
+
 ## [1.5.0] - 2026-10-30
 ### Added
 - Usage window: today's output and input tokens, sessions and replies, a 7-day output chart with hover values, and today's output per project.
@@ -51,6 +55,7 @@ All notable changes to Claude Buddy. Downloads are on the [Releases](https://git
 ## [1.0.0] - 2026-10-29
 - First release for macOS (Apple Silicon).
 
+[1.5.1]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.5.1
 [1.5.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.4.0
 [1.2.2]: https://github.com/Junseung0526/claude-buddy/releases/tag/v1.2.2

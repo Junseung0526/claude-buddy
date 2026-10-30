@@ -126,7 +126,10 @@ def draw_critter(c, s):
         attrs = {NSFontAttributeName: NSFont.boldSystemFontOfSize_(max(10, 2.5 * P)), NSForegroundColorAttributeName: color}
         ns = NSString.stringWithString_(text)
         size = ns.sizeWithAttributes_(attrs)
-        ns.drawAtPoint_withAttributes_((min(bx + bw + P * 0.5 - size.width / 2, W - size.width), by + bh + P * 0.4 + s["emoteRise"]), attrs)
+        if size.width > W:  # 긴 말(번역)은 창 밖으로 잘리지 않게 글자를 줄임
+            attrs[NSFontAttributeName] = NSFont.boldSystemFontOfSize_(max(10, 2.5 * P) * W * 0.9 / size.width)
+            size = ns.sizeWithAttributes_(attrs)
+        ns.drawAtPoint_withAttributes_((max(0, min(bx + bw + P * 0.5 - size.width / 2, W - size.width)),by + bh + P * 0.4 + s["emoteRise"]), attrs)
 
 
 PAPER, INK, SCREEN, PROMPT = rgb("#FFFFFF"), rgb("#9AA3AD"), rgb("#2B2D31"), rgb("#4ADE80")
