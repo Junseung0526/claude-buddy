@@ -372,7 +372,7 @@ class Buddy:
             chip = self.mini_chips.get(aid)
             if chip:
                 text = s and not mc.done_at and s["tail"].text(now)
-                chip.set(f"{s['desc']} · {text}" if text and s.get("kind") == "claude" else text or None)  # 다른 세션은 프로젝트 이름도
+                chip.set(f"{s['desc']} · {localize(text)}" if text and s.get("kind") == "claude" else text or None)  # 다른 세션은 프로젝트 이름도
                 mc.work_kind = label_kind(s["tail"].label) if s and not mc.done_at else None
                 chip.place(mc.cx, mc.y + mc.H, mc.state != "held")
 

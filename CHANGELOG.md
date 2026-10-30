@@ -2,6 +2,10 @@
 
 All notable changes to Claude Buddy. Downloads are on the [Releases](https://github.com/Junseung0526/claude-buddy/releases) page.
 
+## [1.7.1] - 2026-10-30
+### Fixed
+- Labels on other sessions' characters stayed in Korean in other languages.
+
 ## [1.7.0] - 2026-10-30
 ### Added
 - Settings window (menu → Settings… or ⌘,) with General, Appearance, Behavior, Ask and System sections. Replaces the old Settings submenu.
